@@ -1,0 +1,6 @@
+[submodule "src/utils"]
+	path = src/utils
+	url = https://github.com/koobh/ptutils
+[submodule "webrtc_rnnvad"]
+	path = webrtc_rnnvad
+	url = https://github.com/jzi040941/webrtc_rnnvad.git
