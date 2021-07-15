@@ -14,9 +14,11 @@ output_root = root + 'score/'
 
 target_list = [x for x in glob.glob(os.path.join(vad_root,'*.bin'))]
 
-def score(idx):
+def score(idx,threshold):
     target_name = target_list[idx].split('/')[-1]
     target_id = target_name.split('.')[0]
+
+    #print(target_name)
 
     vad = np.fromfile(target_list[idx],'<f4')
 
@@ -30,9 +32,36 @@ def score(idx):
     fpr,tpr, thresholds = sklearn.metrics.roc_curve(label,vad) 
     auc = sklearn.metrics.auc(fpr, tpr)
 
-#    print(thresholds)
-    print( str(tpr) +' | ' + str(fpr) +' | ' +str(auc))
+    vad_flag = vad > threshold
 
+    f1 = sklearn.metrics.f1_score(label,vad_flag)
+    acc = sklearn.metrics.accuracy_score(label,vad_flag)
+
+    return auc,f1,acc
+
+#    print(thresholds)
+    #print( str(tpr) +' | ' + str(fpr) +' | ' +str(auc))
+
+def get_score(threshold):
+    auc = 0
+    f1 = 0
+    acc = 0
+    for i in range(len(target_list)):
+        t1,t2,t3 = score(i,threshold)
+        auc += t1
+        f1 += t2
+        acc += t3
+
+    auc = auc/len(target_list)
+    f1= f1/len(target_list)
+    acc = acc/len(target_list)
+
+    #print('--- treshold : ' + str(threshold) + ' ---- ')
+    #print('AUC of ROC : '+ str(auc))
+    #print('f1_score   : '+ str(f1))
+    #print('accuracy   : '+str(acc))
+
+    print(str(threshold) + ',' + str(auc) + ',' + str(f1) +','+ str(acc))
 
 
 if __name__ == '__main__':
@@ -41,13 +70,16 @@ if __name__ == '__main__':
 
     os.makedirs(output_root,exist_ok=True)
 
-    for i in range(len(target_list)):
-        score(i)
-    exit()
+    print('treshold,AUC,f1_score,accuracy')
 
-    arr = list(range(len(target_list)))
-    with Pool(cpu_num) as p:
-        r = list(tqdm(p.imap(score, arr), total=len(arr),ascii=True,desc='scoring'))
+    for i in range(10) :
+        get_score(i/10)
+
+
+
+#    arr = list(range(len(target_list)))
+#    with Pool(cpu_num) as p:
+#        r = list(tqdm(p.imap(score, arr), total=len(arr),ascii=True,desc='scoring'))
 
 
 

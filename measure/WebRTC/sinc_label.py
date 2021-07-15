@@ -25,6 +25,8 @@ def measure(idx):
     target_name = target_list[idx].split('/')[-1]
     target_id = target_name.split('.')[0]
 
+    #print(target_id)
+
     label_nurse_name = target_id + '_nurse.mat'
     label_patient_name = target_id + '_patient.mat'
 
@@ -59,11 +61,16 @@ def measure(idx):
 
     ## merge nurse and patient
     label = np.zeros(len(data))
+    #print(len(label))
 
     for i in label_nurse:
-        label[int(i[0]*1000):int(i[1]*1000)]=1
+        #print(str(int(i[0]*100)) + ' |' + str(int(i[1]*100)))
+        label[int(i[0]*100):int(i[1]*100)]=1
     for i in label_patient:
-        label[int(i[0]*1000):int(i[1]*1000)]=1
+        #print(str(int(i[0]*100)) + ' |' + str(int(i[1]*100)))
+        label[int(i[0]*100):int(i[1]*100)]=1
+
+    #print(np.sum(label))
     scipy.io.savemat(label_output_root+target_id+'.mat',{"label":label})
     
      
@@ -71,7 +78,7 @@ if __name__ == '__main__':
     cpu_num = cpu_count()
 
     print(len(target_list))
-    
+
     arr = list(range(len(target_list)))
     with Pool(cpu_num) as p:
         r = list(tqdm(p.imap(measure, arr), total=len(arr),ascii=True,desc='sinc_label'))
