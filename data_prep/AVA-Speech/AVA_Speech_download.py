@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import os
+
 import pandas as pd
 import youtube_dl
 
@@ -8,6 +10,7 @@ import logging
 from tqdm import tqdm
 
 prefix='https://youtu.be/'
+output_root = '/home/data/kbh/AVTR/AVA-Speech-id/'
 
 class MyLogger(object):
     def __init__(self):
@@ -47,7 +50,8 @@ ydl_opts = {
      #파일이름 default %(title)s-%(id)s.%(ext)s
      #'outtmpl':'%(title)s.',
     #'outtmpl':'downloads/%(title)s.%(ext)s',
-    'outtmpl':'/home/data/kbh/AVTR/AVA-Speech/%(title)s.%(ext)s',
+    #'outtmpl':'/home/data/kbh/AVTR/AVA-Speech/%(title)s.%(ext)s',
+    'outtmpl': output_root+'/%(id)s.%(ext)s',
     'postprocessors': [{
         'key': 'FFmpegExtractAudio',
         #'preferredcodec': 'wav',
@@ -63,9 +67,10 @@ ydl_opts = {
     #'progress_hooks': [my_hook],
 }
 
-failed=True
+failed=False
 
 if __name__ == '__main__':
+    os.makedirs(output_root,exist_ok = True)
 
     if not failed :
         ava = pd.read_csv('ava_speech_labels_v1.csv',names=['id','start','end','label'])

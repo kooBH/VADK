@@ -6,7 +6,7 @@ from multiprocessing import Pool, cpu_count
 
 sr = 16000
 
-input_root =  '/home/data/kbh/AVTR/AVA-Speech/'
+input_root =  '/home/data/kbh/AVTR/AVA-Speech-id/'
 output_root = '/home/data/kbh/AVTR/AVA-Speech-wav/'
 
 target_list = [x for x in glob.glob(os.path.join(input_root,'*.mp3'))]
