@@ -5,9 +5,13 @@ import torch
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 
+import warnings
+warnings.filterwarnings('error')
+
 root_output = '/home/data/kbh/VADK/train/'
 
-path_keyboard = '/home/data/kbh/AVTR/keyboard/merged_keyboard.wav'
+#path_keyboard = '/home/data/kbh/AVTR/keyboard/merged_keyboard.wav'
+root_keyboard = '/home/data/kbh/AVTR/Audioset_keyboard_valid/'
 root_hospital = '/home/data/kbh/AVTR/hospital_16kHz/'
 root_clean    = '/home/data/kbh/AVTR/AVA-Speech-clean/'
 root_noise    = '/home/data/kbh/background_noise/'
@@ -26,6 +30,7 @@ sec_noise    = 10.0
 
 mel_basis = librosa.filters.mel(sr=sr, n_fft=n_fft, n_mels=n_mels)
 
+list_keyboard = [x for x in glob.glob(os.path.join(root_keyboard,'*.wav'))]
 list_hospital = [x for x in glob.glob(os.path.join(root_hospital,'*.wav'))]
 list_clean    = [x for x in glob.glob(os.path.join(root_clean,'*.wav'))]
 list_noise    = [x for x in glob.glob(os.path.join(root_noise,'*.wav'))]
@@ -38,6 +43,7 @@ def mix(idx):
     SNR_noise    = 5.0
 
     ##  
+    path_keyboard = list_keyboard[np.random.randint(len(list_keyboard))]
     path_hospital = list_hospital[np.random.randint(len(list_hospital))]
     path_clean = list_clean[np.random.randint(len(list_clean))]
     path_noise = list_noise[np.random.randint(len(list_noise))]
@@ -63,10 +69,15 @@ def mix(idx):
     sample_noise    = raw_noise   [idx_noise    : idx_noise    + n_sample_noise]
 
     # norm sample
-    norm_keyboard = sample_keyboard/np.max(np.abs(sample_keyboard))
-    norm_hospital = sample_hospital/np.max(np.abs(sample_hospital))
-    norm_clean    = sample_clean/np.max(np.abs(sample_clean))
-    norm_noise    = sample_noise/np.max(np.abs(sample_noise))
+    try : 
+        norm_keyboard = sample_keyboard/np.max(np.abs(sample_keyboard))
+        norm_hospital = sample_hospital/np.max(np.abs(sample_hospital))
+        norm_clean    = sample_clean/np.max(np.abs(sample_clean))
+        norm_noise    = sample_noise/np.max(np.abs(sample_noise))
+    # there is invalid audio in hospital noise dataset
+    except Warning : 
+        print(path_hospital)
+        exit()
 
     ## Mixing
     # SNR

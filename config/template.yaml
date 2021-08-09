@@ -1,5 +1,6 @@
 model:
-  feature_size : 512
+  n_mels : 40
+  n_frame : 20 # 20 for 320ms
 ---
 train:
   epoch: 50

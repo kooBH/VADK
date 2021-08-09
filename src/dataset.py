@@ -7,7 +7,6 @@ class dataset(torch.utils.data.Dataset):
         self.hp = hp
         self.root = hp.data.root
 
-
     def __gettime__(self,index):
 
     def __len__(self):

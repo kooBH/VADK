@@ -3,13 +3,16 @@ from __future__ import unicode_literals
 import os
 import pandas as pd
 import youtube_dl
+import librosa
+import numpy as np
+import soundfile as sf
 
 import logging
 
 from tqdm import tqdm
 
 prefix='https://youtu.be/'
-output_root = '/home/data/kbh/AVTR/AVA-Speech-id/'
+output_root = '/home/data/kbh/AVTR/Audioset_keyboard/'
 
 class MyLogger(object):
     def __init__(self):
@@ -34,15 +37,6 @@ def my_hook(d):
         else :
             pass#print("Downloading : But couldn't get total_bytes" )
 
-username = None
-password = None
-
-with open('../../key/youtube_account.txt') as f:
-    username = f.readline().split()[0]
-    password = f.readline().split()[0]
-    print('username : ' + username)
-    print('password : ' + password)
-
 ydl_opts = {
     'prefer_ffmpeg':True,
 	'format': 'bestaudio/best',
@@ -53,42 +47,44 @@ ydl_opts = {
     'outtmpl': output_root+'/%(id)s.%(ext)s',
     'postprocessors': [{
         'key': 'FFmpegExtractAudio',
-        #'preferredcodec': 'wav',
-        'preferredcodec': 'mp3',
+        'preferredcodec': 'wav',
+        #'preferredcodec': 'mp3',
         'preferredquality': '192'
     }],
     'quiet':True,
     'ignoreerrors':True,
     'logger': MyLogger(),
-    'username':username,
-    'password':password,
+    #iusername':username,
+    #'password':password,
     'age_limit': 40
     #'progress_hooks': [my_hook],
 }
 
-failed=False
-
 if __name__ == '__main__':
     os.makedirs(output_root,exist_ok = True)
 
-    if not failed :
-        ava = pd.read_csv('ava_speech_labels_v1.csv',names=['id','start','end','label'])
+    data = pd.read_csv('unbalanced_keyboard.csv',names=['id','class1','class2','class3'])
 
-        list_id = ava['id'].drop_duplicates()
+    list_name = data['id'].tolist()
+    list_id = [x[1:12] for x in list_name]
 
-        #for id in list_id.head() :
-        for id in tqdm(list_id):
-            # down_load id  as 16kHz Single, WAV
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([prefix + id])
+    list_start = [x.split('_')[-2] for x in list_name]
+    list_end = [x.split('_')[-1] for x in list_name]
 
-    # run for failed data
-    else :
-        with open('retry.txt') as f :
-            lines = f.readlines()
+    #for id in list_id.head() :
+    for idx in tqdm(range(len(list_id))):
+        id = list_id[idx]
+        start = int(list_start[idx])*16000
+        end   = int(list_end[idx])*16000
 
-            for i in tqdm(lines) :
-                id = i.split()[1]
-                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                    ydl.download([prefix + id])
-
+        # down_load id  as 16kHz Single, WAV
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([prefix + id])
+        
+        # resample as 16kHz
+        if os.path.exists(output_root+'/'+id+'.wav') :
+            raw,_ = librosa.load(output_root+'/'+id+'.wav',sr=16000)
+            sample = raw[start:end]
+            # normalization
+            sample = sample/np.max(np.abs(sample))
+            sf.write(output_root+'/'+id+'.wav',sample,16000)
