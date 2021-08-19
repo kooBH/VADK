@@ -1,60 +1,78 @@
+from tqdm import tqdm
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import pdb
+from data_loader import VAD_dataset
+from CNN_biLSTM import CNN_BiLSTM
+import argparse
+
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--device','-d',type=str,required=False,default='cuda:0',help="specify cuda device")
+args = parser.parse_args()
+
+
 # parameter
-num_epochs = 1
-learning_rate = 0.05
-batch_size = 64
+num_epochs = 100
+learning_rate = 2*1e-3
+batch_size = 256
+num_workers = 8
+device = args.device
 
-# Load data
+## Load data
+#root ="/home/data/kbh/VADK/"
+root = "/home/hido/data_tmp/" 
 
+train_dataset = VAD_dataset(root,is_train=True)
+train_loader = torch.utils.data.DataLoader(dataset=train_dataset,batch_size=batch_size,shuffle=True,num_workers=num_workers)
 
-# Define DataLoader
+## TODO test_dataset, test_dataloader
 
+model = CNN_BiLSTM().to(device)
 
-# CNN-BiLSTM
-class CNN_BiLSTM(nn.Module):
-    def __init__(self):
-        super(CNN_BiLSTM, self).__init__()
-        self.layer1 = nn.Sequential( # 32*32*3 Batch 개수로 묶어서 -> B*32*32*3 -> 5 X 5 (stride - ) ->  -> maxpool -> ->  3 X 3 -> # B * 32 * 32 128 => Maxpool 64 Dense B개수의 Bi LSTM 64 + 64 =128
-            nn.Conv2d(3, 32, 5, stride=1, padding=2),  # B * 3 * 32 * 32  => B * 32 * 32 * 32
-            nn.BatchNorm2d(32),  # batchnorm2d(#features)
-            nn.ReLU(),
-            nn.MaxPool2d(3,stride=1, padding = 1)) #B * 32 * 32 * 32
-        self.layer2 = nn.Sequential( # 14*14*32 -> 14*14*64 -> 7*7*64
-            nn.Conv2d(32, 32, 3, stride=1, padding=1), # B 32 32 32
-            nn.BatchNorm2d(32), 
-            nn.ReLU(),
-            nn.MaxPool2d(3,stride=1, padding = 1)) #B 32 32 32
-        self.flatten = nn.Flatten(1, 2)
-        self.layer3 = nn.Sequential(
-            nn.Linear(32, 64),
-            nn.ReLU())
-        self.layer4 = nn.LSTM(64, 32, batch_first = True, bidirectional = True)
-        self.linear = nn.Linear(64, 1)
-        self.softmax = nn.Softmax(dim=2)
-        
-
-    def forward(self, x):
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.flatten(x)
-        x = self.layer3(x)
-        output, _ = self.layer4(x)
-        x = self.linear(x)
-        x = self.softmax(output)
-        return x
-
-
-model = CNN_BiLSTM()
-criterion = nn.CrossEntropyLoss()
+criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)
 #scheduler = torch.lr_scheduler.ExponentialLR(optimizer, gamma= 0.99)
-image = torch.rand(batch_size, 3, 32, 32) # 일단 랜덤 값을 넣음
-output = model(image)       
-print(output)
+
+
+## Train ##
+total_step = len(train_loader)
+loss_list = []
+
+bestloss = 1e06
+
+# for epoch in tqdm(range(num_epochs)):
+for epoch in range(num_epochs):
+  model.train()
+
+  for idx,(img,label) in enumerate(train_loader):
+    ## batch = [n_batch, n_timestamp, n_mels, n_frame]
+  
+    ## [n_batch,n_timestamp,n_mels,n_frame]
+    ##       -> [n_batch,n_timestamp,n_channel,n_mels,n_frame]
+    img = torch.unsqueeze(img,dim=2)
+    
+    img = img.to(device).float()
+    label = label.to(device).float()
+
+    # Forward
+    output = model(img)
+    
+    loss = criterion(output, label)
+
+    # Backward and optimize
+    # scheduler.step()
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+
+    if (idx+1) % 20 == 1:
+        print("Epoch [{}/{}], Step[{}/{}], Loss:{:.4f}, best{:.4f}".format(epoch+1, num_epochs, idx+1, total_step, loss.item(),bestloss))
+
+    if bestloss >  loss.item():
+        torch.save(model.state_dict(), "model.pth")
+        bestloss = loss.item()
