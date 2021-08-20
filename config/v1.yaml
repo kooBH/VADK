@@ -1,0 +1,40 @@
+model:
+  n_mels : 32
+  dropout : 0.2
+---
+train:
+  epoch: 3
+  batch_size: 2
+  num_workers: 8
+  summary_interval: 10
+---
+loss:
+  type: 'BCELoss' 
+---
+optim:
+  type: "Adam" # Adam
+  Adam: 0.0001
+  Adabound:
+    initial: 0.001
+    final: 0.05
+---
+scheduler: 
+  type: 'Plateau' # Plateau, oneCycle, None
+  oneCycle:
+    max_lr: 0.0001
+  Plateau:
+    mode: 'min'
+    patience: 2
+    factor: 0.5
+    min_lr: 0.000005
+---
+audio:
+  shift : 160
+  frame : 640
+  samplerate : 16000
+---
+data:
+  root: '/home/data/kbh/VADK/'
+---
+log:
+  root: '/home/nas/user/kbh/VADK/'

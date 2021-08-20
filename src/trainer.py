@@ -1,9 +1,15 @@
 import torch
-from VAD_dataset import VAD_dataset
+import torch.nn as nn
+import argparse
+import os
 
 from tensorboardX import SummaryWriter
 from utils.hparams import HParam
 from utils.writer import MyWriter
+
+from VAD_dataset import VAD_dataset
+
+from models.RNN_simple import RNN_simple
 
 ## arguments
 parser = argparse.ArgumentParser()
@@ -48,7 +54,7 @@ dataset_train = VAD_dataset(hp.data.root, is_train=True)
 dataset_test  = VAD_dataset(hp.data.root, is_train=False)
 
 loader_train = torch.utils.data.DataLoader(dataset=dataset_train,batch_size=batch_size,shuffle=True,num_workers=num_workers)
-loader_test = torch.utils.data.DataLoader(dataset=dataset_test,batch_size=batch_size,shuffle=False,num_workers=num_workers)
+loader_test = torch.utils.data.DataLoader(dataset=dataset_test,batch_size=1,shuffle=False,num_workers=num_workers)
 
 ## model
 model = None
@@ -61,12 +67,14 @@ elif hp.model =="B":
     #model = B().to(device)
     pass
 
+model = RNN_simple(hp).to(device)
+
 if not args.chkpt == None : 
    print('NOTE::Loading pre-trained model : '+ args.chkpt)
    model.load_state_dict(torch.load(args.chkpt, map_location=device))
     
 criterion = nn.BCELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=hp.train.adam)
+optimizer = torch.optim.Adam(model.parameters(), lr=hp.optim.Adam)
 
 if hp.scheduler.type == 'Plateau': 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
@@ -88,12 +96,16 @@ step = args.step
 # to detect NAN
 torch.autograd.set_detect_anomaly(True)
 
+print('NOTE::Training starts.')
+
+step = 0
 for epoch in range(num_epochs):
     model.train()
     loss_train = 0
 
     ## Train    
-    for idx,(data,label) in enumerate(train_loader):
+    for idx,(data,label) in enumerate(loader_train):
+        step += 1
         ## img = [n_batch, n_mels, n_frame]
 
         data = data.to(device)
@@ -111,24 +123,27 @@ for epoch in range(num_epochs):
         optimizer.step()
 
         if (idx+1) % hp.train.summary_interval == 1:
-            print("Epoch [{}/{}], Step[{}/{}], Loss:{:.4f}, best{:.4f}".format(epoch+1, num_epochs, idx+1, total_step, loss.item())
+            print("Epoch [{}/{}], Step[{}], Loss:{:.4f}, best{:.4f}".format(epoch+1, num_epochs, idx+1, loss.item(),best_loss))
+        break
     
     ## Eval
     model.eval()
     with torch.no_grad():
         val_loss = 0.0
-        for j, (batch_data) in enumerate(val_loader):
+        for j, (batch_data) in enumerate(loader_test):
 
-            print('TEST::Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, j+1, len(val_loader), loss.item()))
+            print('TEST::Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, j+1, len(loader_test), loss.item()))
             val_loss +=loss.item()
+            break
 
-        val_loss = val_loss/len(val_loader)
-        scheduler.step()
+        val_loss = val_loss/len(loader_test)
+        scheduler.step(val_loss)
 
-        writer.log_value(loss,step,'test loss['+hp.loss.type+']'    
+        writer.log_value(loss,step,'test loss['+hp.loss.type+']'    )
+
 
     torch.save(model.state_dict(), "lastmodel.pt")
-    if bestloss >  val_loss():
+    if best_loss >  val_loss:
         torch.save(model.state_dict(), "bestmodel.pt")
         best_loss = val_loss
 

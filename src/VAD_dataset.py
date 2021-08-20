@@ -4,13 +4,15 @@ import numpy as np
 
 class VAD_dataset(torch.utils.data.Dataset):
     def __init__(self, root,is_train=True) : 
+        super(VAD_dataset,self).__init__()
+
         if is_train : 
             self.list_path = [x for x in glob.glob(os.path.join(root,'train','*.pt'))]
         else :
             self.list_path = [x for x in glob.glob(os.path.join(root,'test','*.pt'))]
         print('dataset length : ' + str(len(self.list_path)))
 
-    def __gettime__(self,index):
+    def __getitem__(self,index):
         path_item = self.list_path[index]
 
         # data["mel"] :
