@@ -67,12 +67,12 @@ print('len test loader : '+str(len(loader_test)))
 model = None
 
 ## TODO
-if hp.model == "GPV":
+if hp.model.type == "GPV":
     model = GPV(hp).to(device)
-elif hp.model =="B":
+elif hp.model.type =="B":
     #model = B().to(device)
     pass
-else
+else :
     raise Exception('No Model specified.')
 
 #model = RNN_simple(hp).to(device)
