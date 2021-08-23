@@ -1,15 +1,19 @@
+import os
+import argparse
 import torch
 import torch.nn as nn
-import argparse
-import os
+import numpy as np
+import sklearn.metrics
+
+
 
 from tensorboardX import SummaryWriter
 from utils.hparams import HParam
 from utils.writer import MyWriter
 
 from VAD_dataset import VAD_dataset
-
 from models.RNN_simple import RNN_simple
+from models.GPV import GPV
 
 ## arguments
 parser = argparse.ArgumentParser()
@@ -56,18 +60,22 @@ dataset_test  = VAD_dataset(hp.data.root, is_train=False)
 loader_train = torch.utils.data.DataLoader(dataset=dataset_train,batch_size=batch_size,shuffle=True,num_workers=num_workers)
 loader_test = torch.utils.data.DataLoader(dataset=dataset_test,batch_size=1,shuffle=False,num_workers=num_workers)
 
+print('len train loader : '+str(len(loader_train)))
+print('len test loader : '+str(len(loader_test)))
+
 ## model
 model = None
 
 ## TODO
-if hp.model == "A":
-    #model = A().to(device)
-    pass
+if hp.model == "GPV":
+    model = GPV(hp).to(device)
 elif hp.model =="B":
     #model = B().to(device)
     pass
+else
+    raise Exception('No Model specified.')
 
-model = RNN_simple(hp).to(device)
+#model = RNN_simple(hp).to(device)
 
 if not args.chkpt == None : 
    print('NOTE::Loading pre-trained model : '+ args.chkpt)
@@ -86,7 +94,7 @@ elif hp.scheduler.type == 'oneCycle':
     scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer,
             max_lr = hp.scheduler.oneCycle.max_lr,
             epochs=hp.train.epoch,
-            steps_per_epoch = len(train_loader)
+            steps_per_epoch = len(loader_train)
             )
 else :
     raise TypeError("Unsupported scheduler type")
@@ -111,10 +119,10 @@ for epoch in range(num_epochs):
         data = data.to(device)
         label = label.to(device)
 
+        #print(data.shape)
         # Forward
         output = model(data)
-
-        loss = criterion(output, label)
+        loss = criterion(output.float(), label.float())
 
         # Backward and optimize
         # scheduler.step()
@@ -123,28 +131,75 @@ for epoch in range(num_epochs):
         optimizer.step()
 
         if (idx+1) % hp.train.summary_interval == 1:
-            print("Epoch [{}/{}], Step[{}], Loss:{:.4f}, best{:.4f}".format(epoch+1, num_epochs, idx+1, loss.item(),best_loss))
-        break
+            print("TRAIN:: Epoch [{}/{}], Step[{}/{}], Loss:{:.4f}".format(epoch+1, num_epochs, idx+1,len(loader_train), loss.item()))
+
+        #break
     
     ## Eval
     model.eval()
     with torch.no_grad():
         val_loss = 0.0
-        for j, (batch_data) in enumerate(loader_test):
+        f1_score = 0
+        #list_threshold = [0.1,0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        list_threshold = [ 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7]
+        list_f1 = np.zeros(len(list_threshold))
+        list_acc= np.zeros(len(list_threshold))
 
-            print('TEST::Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, j+1, len(loader_test), loss.item()))
+        for j, (data,label) in enumerate(loader_test):
+            data = data.to(device)
+            label = label.to(device)
+
+            output = model(data)
+            loss = criterion(output.float(), label.float())
             val_loss +=loss.item()
-            break
+            #print(output.shape)
+            #print(label.shape)
+
+            for i in range(len(list_threshold)) : 
+                label_output = (output[0] > list_threshold[i]).float()
+
+                # to avoid zero_division error
+                label_output[0]=1
+                label_output[1]=0
+
+                list_f1[i] +=sklearn.metrics.f1_score(label_output.cpu().detach().numpy(),label[0].cpu().detach().numpy())
+
+                list_acc[i] +=sklearn.metrics.accuracy_score(label_output.cpu().detach().numpy(),label[0].cpu().detach().numpy())
+
+            #print(output[0,0:10])
+            #print(label_output[0:10])
+            #print(label[0][0:10])
+
+            #break
+
+
 
         val_loss = val_loss/len(loader_test)
-        scheduler.step(val_loss)
+        if hp.scheduler.type == 'Plateau' : 
+            scheduler.step(val_loss)
+        else :
+            scheduler.step()
 
-        writer.log_value(loss,step,'test loss['+hp.loss.type+']'    )
+        print('--threshold---f1_score---accuracy--')
+        for i in range(len(list_threshold)) : 
+           list_f1[i] = list_f1[i]/len(loader_test)
+           list_acc[i] = list_acc[i]/len(loader_test)
+           #print( 'thr : '+str(list_threshold[i])+' | f1 : ' + str(list_f1[i]) +' | acc : ' + str(list_acc[i]))
+           #print('thr : {:.2f} | f1 : {:.4f} | acc : {:.4f}'.format(list_threshold[i],list_f1[i],list_acc[i]))
+           print('|   {:.2f}    |  {:.4f} |  {:.4f}  |'.format(list_threshold[i],list_f1[i],list_acc[i]))
 
 
-    torch.save(model.state_dict(), "lastmodel.pt")
+        print('TEST::Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, j+1, len(loader_test), val_loss))
+
+        # logging
+
+        writer.log_value(val_loss,step,'test loss['+hp.loss.type+']'    )
+        #writer.log_value(f1_score,step,'test f1_score'    )
+
+
+    torch.save(model.state_dict(), modelsave_path +"/lastmodel.pt")
     if best_loss >  val_loss:
-        torch.save(model.state_dict(), "bestmodel.pt")
+        torch.save(model.state_dict(), modelsave_path + "/bestmodel.pt")
         best_loss = val_loss
 
     ## Log
