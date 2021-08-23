@@ -1,0 +1,43 @@
+model:
+  type :  'MISO'
+  n_mels : 32
+  n_frame : -1
+---
+train:
+  epoch: 200
+  batch_size: 12 
+  #batch_size: 2
+  num_workers: 8 
+  summary_interval: 10
+---
+loss:
+  type: 'BCELoss' 
+---
+optim:
+  type: "Adam" # Adam
+  Adam: 0.0001
+  adabound:
+    initial: 0.001
+    final: 0.05
+---
+scheduler: 
+  type: 'Plateau' # Plateau, oneCycle, None
+  oneCycle:
+    max_lr: 0.0001
+  Plateau:
+    mode: 'min'
+    patience: 2
+    factor: 0.5
+    min_lr: 0.000005
+---
+audio:
+  shift : 160
+  frame : 640
+  n_mels : 32
+  samplerate : 16000
+---
+data:
+  root: '/home/data/kbh/VADK/AVTR/mel_32/'
+---
+log:
+  root: '/home/nas/user/kbh/VADK/'

@@ -11,9 +11,12 @@ from tensorboardX import SummaryWriter
 from utils.hparams import HParam
 from utils.writer import MyWriter
 
+from tqdm import tqdm
+
 from VAD_dataset import VAD_dataset
 from models.RNN_simple import RNN_simple
-from models.GPV import GPV
+#from models.GPV import GPV
+from models.MISO import MISO_1
 
 ## arguments
 parser = argparse.ArgumentParser()
@@ -68,8 +71,14 @@ model = None
 
 ## TODO
 if hp.model.type == "GPV":
-    model = GPV(hp).to(device)
-elif hp.model.type =="B":
+    #model = GPV(hp).to(device)
+    pass
+elif hp.model.type =="MISO":
+    num_bottleneck = 5
+    en_bottleneck_channels = [1,24,32,64,128,384,64] # 16: 2*Ch 
+    Ch = 1  # number of mic
+    norm_type = 'IN'  #Instance Norm
+    model = MISO_1(num_bottleneck,en_bottleneck_channels,Ch,norm_type).to(device)
     #model = B().to(device)
     pass
 else :
@@ -116,6 +125,7 @@ for epoch in range(num_epochs):
         step += 1
         ## img = [n_batch, n_mels, n_frame]
 
+
         data = data.to(device)
         label = label.to(device)
 
@@ -145,15 +155,19 @@ for epoch in range(num_epochs):
         list_f1 = np.zeros(len(list_threshold))
         list_acc= np.zeros(len(list_threshold))
 
-        for j, (data,label) in enumerate(loader_test):
+        for j, (data,label) in tqdm(enumerate(loader_test)):
             data = data.to(device)
             label = label.to(device)
 
             output = model(data)
-            loss = criterion(output.float(), label.float())
-            val_loss +=loss.item()
+
+            
             #print(output.shape)
             #print(label.shape)
+
+            loss = criterion(output.float(), label.float())
+            val_loss +=loss.item()
+
 
             for i in range(len(list_threshold)) : 
                 label_output = (output[0] > list_threshold[i]).float()
