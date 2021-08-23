@@ -15,8 +15,9 @@ from tqdm import tqdm
 
 from VAD_dataset import VAD_dataset
 from models.RNN_simple import RNN_simple
-#from models.GPV import GPV
+from models.GPV import GPV
 from models.MISO import MISO_1
+from models.MISO64 import MISO64
 
 ## arguments
 parser = argparse.ArgumentParser()
@@ -71,16 +72,19 @@ model = None
 
 ## TODO
 if hp.model.type == "GPV":
-    #model = GPV(hp).to(device)
-    pass
+    model = GPV(hp,inputdim=hp.model.n_mels).to(device)
 elif hp.model.type =="MISO":
     num_bottleneck = 5
     en_bottleneck_channels = [1,24,32,64,128,384,64] # 16: 2*Ch 
     Ch = 1  # number of mic
     norm_type = 'IN'  #Instance Norm
     model = MISO_1(num_bottleneck,en_bottleneck_channels,Ch,norm_type).to(device)
-    #model = B().to(device)
-    pass
+elif hp.model.type =="MISO64":
+    num_bottleneck = 6
+    en_bottleneck_channels = [1,24,32,64,128,256,384] # 16: 2*Ch 
+    Ch = 1  # number of mic
+    norm_type = 'IN'  #Instance Norm
+    model = MISO64(num_bottleneck,en_bottleneck_channels,Ch,norm_type).to(device)
 else :
     raise Exception('No Model specified.')
 
@@ -124,7 +128,6 @@ for epoch in range(num_epochs):
     for idx,(data,label) in enumerate(loader_train):
         step += 1
         ## img = [n_batch, n_mels, n_frame]
-
 
         data = data.to(device)
         label = label.to(device)
