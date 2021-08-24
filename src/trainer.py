@@ -19,6 +19,7 @@ from models.GPV import GPV
 from models.MISO import MISO_1
 from models.MISO64 import MISO64
 
+
 ## arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', '-c', type=str, required=True,
@@ -70,7 +71,6 @@ print('len test loader : '+str(len(loader_test)))
 ## model
 model = None
 
-## TODO
 if hp.model.type == "GPV":
     model = GPV(hp,inputdim=hp.model.n_mels).to(device)
 elif hp.model.type =="MISO":
@@ -84,7 +84,7 @@ elif hp.model.type =="MISO64":
     en_bottleneck_channels = [1,24,32,64,128,256,384] # 16: 2*Ch 
     Ch = 1  # number of mic
     norm_type = 'IN'  #Instance Norm
-    model = MISO64(num_bottleneck,en_bottleneck_channels,Ch,norm_type).to(device)
+    model = MISO64(num_bottleneck,en_bottleneck_channels,Ch,norm_type,rate_dropout=hp.model.dropout).to(device)
 else :
     raise Exception('No Model specified.')
 
@@ -152,7 +152,7 @@ for epoch in range(num_epochs):
         val_loss = 0.0
         f1_score = 0
         #list_threshold = [0.1,0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-        list_threshold = [ 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7]
+        list_threshold = [ 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.8,0.9]
         list_f1 = np.zeros(len(list_threshold))
         list_acc= np.zeros(len(list_threshold))
         list_tpr = np.zeros(len(list_threshold))
@@ -184,9 +184,12 @@ for epoch in range(num_epochs):
                 list_f1[i] +=sklearn.metrics.f1_score(pred,true)
 
                 list_acc[i] +=sklearn.metrics.accuracy_score(pred,true)
-
                 tp = np.sum((pred==1) & (true==1))
                 fn = np.sum((pred == 0) & (true==1))
+
+                # in case of there is no speech in the segment
+                fn = np.min(fn,1)
+                tp = np.min(tp,1)
 
                 list_tpr[i] = tp/(tp+fn)
             #print(output[0,0:10])
