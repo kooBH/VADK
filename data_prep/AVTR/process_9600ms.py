@@ -9,18 +9,24 @@ from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 
 
-root       = '/home/data/kbh/'
-root_label = root + '/AVTR/vad_label/'
-root_data  = root + '/AVTR/labeled_1ch/'
-root_output = root + '/VADK/test/'
 
-list_target =  [ x for x in glob.glob(os.path.join(root_data,'*.wav'))]
-print(len(list_target))
 
 sr      = 16000
 n_fft   = 640
 n_shift = 160
-n_mels  = 32
+n_mels  = 64
+
+n_frame = 960
+n_frame_shift = 480
+
+root       = '/home/data/kbh/'
+root_label = root + '/AVTR/vad_label/'
+root_data  = root + '/AVTR/labeled_1ch/'
+root_output = root + '/VADK/AVTR/mel_'+str(n_mels)+'/'
+
+list_target =  [ x for x in glob.glob(os.path.join(root_data,'*.wav'))]
+print(len(list_target))
+
 
 mel_basis = librosa.filters.mel(sr=sr, n_fft=n_fft, n_mels=n_mels)
 
@@ -43,7 +49,7 @@ def process(idx):
     raw_label = scipy.io.loadmat(path_label)['label'][0,:]  
 
     # Wav to Mel
-    spec = librosa.stft(raw,window='hann',n_fft=n_fft,hop_length=n_shift, win_length=None,center=True,pad_mode='reflect',dtype=np.cdouble)
+    spec = librosa.stft(raw,window='hann',n_fft=n_fft,hop_length=n_shift, win_length=None,center=True,dtype=np.cdouble)
 
     mel = np.matmul(mel_basis,np.abs(spec))
     pt = torch.from_numpy(mel)
@@ -56,10 +62,24 @@ def process(idx):
         if raw_label[i] or raw_label[i+1] or raw_label[i+2] or raw_label[i+3] :
             label[i]=1
 
-    # save
+    # save for 9600ms segments
     pt = pt[:,:-1]
-    data = {"mel":pt,"label":label}
-    torch.save(data,os.path.join(root_output,str(idx)+'.pt'))
+
+    p_end = n_frame
+    while p_end  <= pt.shape[1] : 
+        t_pt = pt[:,p_end-n_frame:p_end]
+        t_label = label[p_end-n_frame:p_end]
+
+        #print(t_pt.shape)
+        #print(t_label.shape)
+
+        data = {"mel":t_pt,"label":t_label}
+        torch.save(data,os.path.join(root_output,str(idx)+'_'+str(p_end)+'.pt'))
+
+        p_end += n_frame_shift
+
+    # print(pt.shape)
+    # print(label.shape)
 
 if __name__ == '__main__':
     cpu_num = cpu_count()

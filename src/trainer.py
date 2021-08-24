@@ -13,10 +13,13 @@ from tqdm import tqdm
 
 from VAD_dataset import VAD_dataset
 from models.RNN_simple import RNN_simple
+
 # from models.GPV import GPV
 from models.MISO32 import MISO_1
 from models.MISO64 import MISO64
 from models.MISO_stft import MISO_stft
+from models.GPV import GPV
+
 
 ## arguments
 parser = argparse.ArgumentParser()
@@ -72,7 +75,9 @@ model = None
 ## TODO
 # if hp.model.type == "GPV":
     # model = GPV(hp,inputdim=hp.model.n_mels).to(device)
-if hp.model.type =="MISO32":
+if hp.model.type == "GPV":
+    model = GPV(hp,inputdim=hp.model.n_mels).to(device)
+elif hp.model.type =="MISO32":
     num_bottleneck = 5
     en_bottleneck_channels = [1,24,32,64,128,384,64] # 16: 2*Ch 
     Ch = 1  # number of mic
@@ -90,7 +95,6 @@ elif hp.model.type =="MISO_stft":
     Ch = 1  # number of mic
     norm_type = 'IN'  #Instance Norm
     model = MISO_stft(num_bottleneck,en_bottleneck_channels,Ch,norm_type).to(device)
-
 else :
     raise Exception('No Model specified.')
 
