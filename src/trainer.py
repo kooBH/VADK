@@ -146,8 +146,6 @@ for epoch in range(num_epochs):
         if (idx+1) % hp.train.summary_interval == 1:
             print("TRAIN:: Epoch [{}/{}], Step[{}/{}], Loss:{:.4f}".format(epoch+1, num_epochs, idx+1,len(loader_train), loss.item()))
 
-        #break
-    
     ## Eval
     model.eval()
     with torch.no_grad():
@@ -157,6 +155,7 @@ for epoch in range(num_epochs):
         list_threshold = [ 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7]
         list_f1 = np.zeros(len(list_threshold))
         list_acc= np.zeros(len(list_threshold))
+        list_tpr = np.zeros(len(list_threshold))
 
         for j, (data,label) in tqdm(enumerate(loader_test)):
             data = data.to(device)
@@ -179,15 +178,20 @@ for epoch in range(num_epochs):
                 label_output[0]=1
                 label_output[1]=0
 
-                list_f1[i] +=sklearn.metrics.f1_score(label_output.cpu().detach().numpy(),label[0].cpu().detach().numpy())
+                pred = label_output.cpu().detach().numpy()
+                true = label[0].cpu().detach().numpy()
 
-                list_acc[i] +=sklearn.metrics.accuracy_score(label_output.cpu().detach().numpy(),label[0].cpu().detach().numpy())
+                list_f1[i] +=sklearn.metrics.f1_score(pred,true)
 
+                list_acc[i] +=sklearn.metrics.accuracy_score(pred,true)
+
+                tp = np.sum((pred==1) & (true==1))
+                fn = np.sum((pred == 0) & (true==1))
+
+                list_tpr[i] = tp/(tp+fn)
             #print(output[0,0:10])
             #print(label_output[0:10])
             #print(label[0][0:10])
-
-            #break
 
 
 
@@ -197,13 +201,13 @@ for epoch in range(num_epochs):
         else :
             scheduler.step()
 
-        print('--threshold---f1_score---accuracy--')
+        print('--threshold---f1_score---accuracy---TPR--')
         for i in range(len(list_threshold)) : 
            list_f1[i] = list_f1[i]/len(loader_test)
            list_acc[i] = list_acc[i]/len(loader_test)
            #print( 'thr : '+str(list_threshold[i])+' | f1 : ' + str(list_f1[i]) +' | acc : ' + str(list_acc[i]))
            #print('thr : {:.2f} | f1 : {:.4f} | acc : {:.4f}'.format(list_threshold[i],list_f1[i],list_acc[i]))
-           print('|   {:.2f}    |  {:.4f} |  {:.4f}  |'.format(list_threshold[i],list_f1[i],list_acc[i]))
+           print('|   {:.2f}    |  {:.4f} |  {:.4f}  | {:.4f} | '.format(list_threshold[i],list_f1[i],list_acc[i],list_tpr[i]))
 
 
         print('TEST::Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, j+1, len(loader_test), val_loss))
