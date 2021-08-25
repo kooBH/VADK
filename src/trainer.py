@@ -188,8 +188,8 @@ for epoch in range(num_epochs):
                 fn = np.sum((pred == 0) & (true==1))
 
                 # in case of there is no speech in the segment
-                fn = np.min(fn,1)
-                tp = np.min(tp,1)
+                fn = np.max([fn,1])
+                tp = np.max([tp,1])
 
                 list_tpr[i] = tp/(tp+fn)
             #print(output[0,0:10])
