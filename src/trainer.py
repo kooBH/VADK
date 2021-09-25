@@ -5,8 +5,6 @@ import torch.nn as nn
 import numpy as np
 import sklearn.metrics
 
-
-
 from tensorboardX import SummaryWriter
 from utils.hparams import HParam
 from utils.writer import MyWriter
@@ -15,9 +13,13 @@ from tqdm import tqdm
 
 from VAD_dataset import VAD_dataset
 from models.RNN_simple import RNN_simple
-from models.GPV import GPV
-from models.MISO import MISO_1
+
+# from models.GPV import GPV
+from models.MISO32v2 import MISO32v2
 from models.MISO64 import MISO64
+#from models.MISO_stft import MISO_stft
+from models.GPV import GPV
+
 
 
 ## arguments
@@ -73,7 +75,7 @@ model = None
 
 if hp.model.type == "GPV":
     model = GPV(hp,inputdim=hp.model.n_mels).to(device)
-elif hp.model.type =="MISO":
+elif hp.model.type =="MISO32":
     num_bottleneck = 5
     en_bottleneck_channels = [1,24,32,64,128,384,64] # 16: 2*Ch 
     Ch = 1  # number of mic
@@ -85,7 +87,21 @@ elif hp.model.type =="MISO64":
     Ch = 1  # number of mic
     norm_type = 'IN'  #Instance Norm
     model = MISO64(num_bottleneck,en_bottleneck_channels,Ch,norm_type,rate_dropout=hp.model.dropout).to(device)
-else :
+    model = MISO64(num_bottleneck,en_bottleneck_channels,Ch,norm_type).to(device)
+elif hp.model.type =="MISO_stft":
+    pass
+    num_bottleneck = 32
+    en_bottleneck_channels = [1,24,32,64,128,256,384] # 16: 2*Ch 
+    Ch = 1  # number of mic
+    norm_type = 'IN'  #Instance Norm
+    model = MISO_stft(num_bottleneck,en_bottleneck_channels,Ch,norm_type).to(device)
+elif hp.model.type == 'MISO32v2':
+    num_bottleneck = 5
+    en_bottleneck_channels = [1,24,32,64,128,384,64] # 16: 2*Ch 
+    Ch = 1  # number of mic
+    norm_type = 'IN'  #Instance Norm
+    model = MISO32v2(num_bottleneck,en_bottleneck_channels,Ch,norm_type).to(device)
+if model is None :
     raise Exception('No Model specified.')
 
 #model = RNN_simple(hp).to(device)
@@ -227,6 +243,3 @@ for epoch in range(num_epochs):
         best_loss = val_loss
 
     ## Log
-
-        
-
