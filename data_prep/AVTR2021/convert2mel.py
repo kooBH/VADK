@@ -13,8 +13,11 @@ n_overlap = n_fft - n_shift
 n_mels  = 40
 time_shift = (1/sr)*n_shift
 
+n_frame = 600
+n_frame_shift = 300
+
 root_input = '/home/data2/kbh/AVTR/extract/'
-root_output = '/home/data2/kbh/AVTR/'
+root_output = '/home/data2/kbh/VADK/AVTR/'
 
 mel_basis = librosa.filters.mel(sr=sr, n_fft=n_fft, n_mels=n_mels)
 
@@ -54,13 +57,19 @@ def process(idx):
             label[i]=1
     label = torch.from_numpy(label)
     label = label.float()
-    data = {"mel":pt, "label":label}
-    #print(np.shape(raw))
-    #print(pt.shape)
-    #print(label.shape)
-        
+
     ## save
-    torch.save(data, os.path.join(root_output,'mel'+str(n_mels),id_data+'.pt'))
+    p_end = n_frame
+    idx = 0
+    while p_end <= pt.shape[1] : 
+        t_pt = pt[:,p_end-n_frame:p_end] 
+        t_label = label[p_end-n_frame:p_end]
+
+        data = {"mel":t_pt,"label":t_label}
+        torch.save(data, os.path.join(root_output,'mel'+str(n_mels),id_data+'_'+str(idx)+'.pt'))
+
+        idx += 1
+        p_end +=n_frame_shift
 
 
 if __name__ == '__main__' : 
