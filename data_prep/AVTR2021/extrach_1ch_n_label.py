@@ -11,7 +11,7 @@ from multiprocessing import Pool, cpu_count
 import json  
 
 path_json = './label.private'
-root_output = '/home/data2/kbh/AVTR/extract/'
+root_output = '/home/data/kbh/AVTR/extract/'
 root_wav =  '/home/nas/DB/[DB]AV-TR/raw/'
 sr = 16000
 
@@ -34,7 +34,6 @@ def process(idx):
         sf.write(os.path.join(root_output,'wav',id_target+'.wav'),data,samplerate=16000)
     else :
         return
-
     ## Label
     label_nurse   = json_label[key_target]['nurse']
     label_patient = json_label[key_target]['patient']
@@ -53,8 +52,7 @@ def process(idx):
         j = len(y)-1-i
         if y[j][1] != y[j-1][1] :
             label_mergred.append(y[j])
-    if y[0][1] != y[1][1] :
-        label_mergred.append(y[0])
+    label_mergred.append(y[0])
     label_mergred.sort(key = lambda t: t[0]) 
 
     npy_label = np.array(label_mergred)
@@ -63,7 +61,7 @@ def process(idx):
 
 if __name__ == '__main__' : 
 
-    cpu_num = cpu_count() - 14
+    cpu_num = cpu_count() 
 
     os.makedirs(root_output,exist_ok=True)
     os.makedirs(root_output+'/wav',exist_ok=True)
