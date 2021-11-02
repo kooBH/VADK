@@ -5,8 +5,11 @@ import pdb
 import math
 EPS = 1e-8
 
+# https://ieeexplore.ieee.org/abstract/document/9053610 
+# Multi-Microphone Complex Spectral Mapping for Speech Dereverberation
+
 class MISO64(nn.Module):
-    def __init__(self,num_bottleneck,en_bottleneck_channels,Ch,norm_type):
+    def __init__(self,num_bottleneck,en_bottleneck_channels,Ch,norm_type,rate_dropout=0.2):
         super(MISO64,self).__init__()
         #init#        
         # ch = 8 -> real + imag = 16
@@ -17,6 +20,7 @@ class MISO64(nn.Module):
         num_bottleneck : number of bottleneck
         """
         self.num_bottleneck = num_bottleneck
+        self.rate_dropout = rate_dropout
         self.encoders = nn.ModuleList()
         for n_b in range(num_bottleneck):
             block = self.en_make_layer(n_b,en_bottleneck_channels[n_b], en_bottleneck_channels[n_b+1])
@@ -40,6 +44,7 @@ class MISO64(nn.Module):
             layers.append(Conv2d_(in_channels,out_channels,kernel_size=(3,3), stride=(1,2),padding=(1,0)))
         else:
             layers.append(Conv2d_(in_channels,out_channels,kernel_size=(1,2), stride=(1,2),padding=(0,0)))
+        layers.append(nn.Dropout(self.rate_dropout))
 
         return nn.Sequential(*layers)
 
@@ -209,6 +214,9 @@ class DenseBlock(nn.Module):
         return y4
 
 
+
+# https://openaccess.thecvf.com/content_cvpr_2017/html/Lea_Temporal_Convolutional_Networks_CVPR_2017_paper.html
+# Temporal Convolutional Networks for Action Segmentation and Detection
 
 class TemporalConvNet(nn.Module):
     def __init__(self, R, X, C_in, C_hidden, C_out, norm_type = "IN"):

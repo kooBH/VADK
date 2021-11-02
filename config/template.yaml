@@ -1,7 +1,6 @@
 model:
   type :  # GPV
   n_mels : 40
-  n_frame : 20 # 20 for 320ms
 ---
 train:
   epoch: 50
@@ -14,8 +13,8 @@ loss:
 ---
 optim:
   type: "Adam" # Adam
-  adam: 0.0001
-  adabound:
+  Adam: 0.0001
+  Adabound:
     initial: 0.001
     final: 0.05
 ---

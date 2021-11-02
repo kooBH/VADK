@@ -57,7 +57,7 @@ def process(idx):
             label[i]=1
     label = torch.from_numpy(label)
     label = label.float()
-
+'''
     ## save
     p_end = n_frame
     idx = 0
@@ -70,10 +70,9 @@ def process(idx):
 
         idx += 1
         p_end +=n_frame_shift
-
-
+'''
 if __name__ == '__main__' : 
-    cpu_num = cpu_count() - 14
+    cpu_num = cpu_count() -2
 
     os.makedirs(root_output+'/mel'+str(n_mels),exist_ok=True)
 

@@ -1,10 +1,11 @@
 model: 
-  type : 'MISO64'
+  type : 'GPV'
   n_mels : 64
+  dropout : 0.2
 ---
 train:
   epoch: 200
-  batch_size: 12
+  batch_size: 128
   num_workers: 8
   summary_interval: 10
 ---

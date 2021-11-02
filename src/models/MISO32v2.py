@@ -5,9 +5,9 @@ import pdb
 import math
 EPS = 1e-8
 
-class MISO_1(nn.Module):
+class MISO32v2(nn.Module):
     def __init__(self,num_bottleneck,en_bottleneck_channels,Ch,norm_type):
-        super(MISO_1,self).__init__()
+        super(MISO32v2,self).__init__()
         #init#        
         # ch = 8 -> real + imag = 16
         # en_bottleneck_channels = [2*Ch,24,32,32,32,32,64,128,384]
@@ -310,16 +310,3 @@ class GlobalLayerNorm(nn.Module):
         var = (torch.pow(y-mean, 2)).mean(dim=1, keepdim=True).mean(dim=2, keepdim=True)
         gLN_y = self.gamma * (y - mean) / torch.pow(var + EPS, 0.5) + self.beta
         return gLN_y
-
-
-if __name__ == "__main__":
-    # input = torch.randn(10,1,32,257, dtype=torch.cfloat)
-    input = torch.randn(10,1,32,32, dtype=torch.float)
-    
-    ## STFT ##
-    # model = MISO_1(8,[2,24,32,32,32,32,64,128,384],1,"IN")    
-    
-
-    ## MEL ##
-    model = MISO_1(5,[1,24,32,64,128,384,64],1,"IN")    
-    output = model(input)

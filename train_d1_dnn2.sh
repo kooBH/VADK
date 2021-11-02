@@ -13,10 +13,8 @@
 #TARGET=miso_3
 #python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:1'  
 
-## 2021-10-06
-#TARGET=GPV_5
+## 2021-09-29
+#TARGET=miso_4
 #python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:1'  
-
-## 2021-10-07
-TARGET=GPV_4
+TARGET=GPV_6
 python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:1'  

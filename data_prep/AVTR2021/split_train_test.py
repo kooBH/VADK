@@ -11,7 +11,6 @@ if __name__ == '__main__' :
     os.makedirs(root+'/train',exist_ok=True)
     os.makedirs(root+'/test',exist_ok=True)
 
-
     list_idx_test = numpy.random.choice(len(list_target),int(len(list_target)*ratio_test),replace=False)
 
     for idx in list_idx_test:

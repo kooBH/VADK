@@ -4,13 +4,14 @@ import librosa
 import torch 
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
+import soundfile as sf
 
 import warnings
 warnings.filterwarnings('error')
 
 root = '/home/data/kbh/'
 
-root_output = root+'VADK/train/'
+root_output = root+'/VADK/test_official/'
 
 #path_keyboard = '/home/data/kbh/AVTR/keyboard/merged_keyboard.wav'
 root_keyboard = root+'/AVTR/Audioset_keyboard_valid/'
@@ -18,7 +19,7 @@ root_hospital = root+'/AVTR/hospital_16kHz/'
 root_clean    = root+'/AVTR/AVA-Speech-clean/'
 root_noise    = root+'/background_noise/'
 
-n_output = 20000
+n_output = 10000
 
 sr      = 16000
 n_fft   = 640
@@ -28,7 +29,7 @@ n_mels  = 32
 sec_keyboard = 5.0
 sec_hospital = 4.0
 sec_clean    = 5.0
-sec_noise    = 9.6
+sec_noise    = 10.0
 
 mel_basis = librosa.filters.mel(sr=sr, n_fft=n_fft, n_mels=n_mels)
 
@@ -43,6 +44,7 @@ print(len(list_clean))
 print(len(list_noise))
 
 def mix(idx):
+
     # random with multiprocessing
     np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
     ## SNR keyboard [0,5]
@@ -120,19 +122,18 @@ def mix(idx):
     mixed[offset_clean:offset_clean       + n_sample_clean]    += norm_clean
     mixed = mixed/np.max(np.abs(mixed))
 
-    # Wav to Mel
-    spec = librosa.stft(mixed,window='hann',n_fft=n_fft,hop_length=n_shift, win_length=None,center=False,dtype=np.cdouble)
-
-    mel = np.matmul(mel_basis,np.abs(spec))
-    pt = torch.from_numpy(mel)
-
-    # Label (round on edge)
+    # Label (ceil on edge)
     label = torch.zeros(int(np.ceil(n_sample_noise/n_shift)) + 1-int(n_fft/n_shift) )
-    label[int(np.round(offset_clean/n_shift)) :int(np.round((offset_clean+n_sample_clean)/n_shift)) ] = 1
+    label[int(np.ceil(offset_clean/n_shift)) :int(np.ceil((offset_clean+n_sample_clean)/n_shift)) ] = 1
 
-    # save
-    data = {"mel":pt,"label":label}
-    torch.save(data,os.path.join(root_output,str(idx)+'.pt'))
+    ## save save
+
+    sf.write(root_output +'/wav/'+str(idx)+'.wav',mixed,16000)
+
+    ## label .pt
+    torch.save(label,root_output + '/label/'+str(idx)+'.pt')
+
+
 
 if __name__=='__main__' : 
     cpu_num = cpu_count()

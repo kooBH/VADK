@@ -8,9 +8,6 @@ import torch
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 
-
-
-
 sr      = 16000
 n_fft   = 640
 n_shift = 160
@@ -26,7 +23,6 @@ root_output = root + '/VADK/AVTR/mel_'+str(n_mels)+'/'
 
 list_target =  [ x for x in glob.glob(os.path.join(root_data,'*.wav'))]
 print(len(list_target))
-
 
 mel_basis = librosa.filters.mel(sr=sr, n_fft=n_fft, n_mels=n_mels)
 

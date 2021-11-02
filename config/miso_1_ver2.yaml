@@ -1,11 +1,13 @@
-model: 
-  type : 'MISO64'
-  n_mels : 64
+model:
+  type :  'MISO32v2'
+  n_mels : 32
+  n_frame : -1
 ---
 train:
   epoch: 200
-  batch_size: 12
-  num_workers: 8
+  batch_size: 12 
+  #batch_size: 2
+  num_workers: 8 
   summary_interval: 10
 ---
 loss:
@@ -14,7 +16,7 @@ loss:
 optim:
   type: "Adam" # Adam
   Adam: 0.0001
-  Adabound:
+  adabound:
     initial: 0.001
     final: 0.05
 ---
@@ -31,10 +33,11 @@ scheduler:
 audio:
   shift : 160
   frame : 640
+  n_mels : 32
   samplerate : 16000
 ---
 data:
-  root: '/home/data/kbh/VADK/AVTR/mel_64/'
+  root: '/home/data/kbh/VADK/AVTR/mel32/'
 ---
 log:
   root: '/home/nas/user/kbh/VADK/'

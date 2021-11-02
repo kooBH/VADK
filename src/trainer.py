@@ -61,8 +61,8 @@ writer = MyWriter(hp, log_dir)
 
 ## data
 
-dataset_train = VAD_dataset(hp.data.root, is_train=True)
-dataset_test  = VAD_dataset(hp.data.root, is_train=False)
+dataset_train = VAD_dataset(hp, is_train=True)
+dataset_test  = VAD_dataset(hp, is_train=False)
 
 loader_train = torch.utils.data.DataLoader(dataset=dataset_train,batch_size=batch_size,shuffle=True,num_workers=num_workers)
 loader_test = torch.utils.data.DataLoader(dataset=dataset_test,batch_size=1,shuffle=False,num_workers=num_workers)
@@ -109,8 +109,15 @@ if model is None :
 if not args.chkpt == None : 
    print('NOTE::Loading pre-trained model : '+ args.chkpt)
    model.load_state_dict(torch.load(args.chkpt, map_location=device))
-    
-criterion = nn.BCELoss()
+
+if hp.loss.type == 'BCELoss' :
+    criterion = nn.BCELoss()
+elif hp.loss.type == 'BCEWithLogitsLoss':
+    criterion = nn.BCEWithLogitsLoss(pos_weight = torch.tensor(hp.loss.BCEWithLogitsLoss.pos_weight))
+else:
+    raise Exception('No Such Loss ' + str(hp.loss.type))
+
+
 optimizer = torch.optim.Adam(model.parameters(), lr=hp.optim.Adam)
 
 if hp.scheduler.type == 'Plateau': 
@@ -179,13 +186,11 @@ for epoch in range(num_epochs):
 
             output = model(data)
 
-            
             #print(output.shape)
             #print(label.shape)
 
             loss = criterion(output.float(), label.float())
             val_loss +=loss.item()
-
 
             for i in range(len(list_threshold)) : 
                 label_output = (output[0] > list_threshold[i]).float()
@@ -207,12 +212,10 @@ for epoch in range(num_epochs):
                 fn = np.max([fn,1])
                 tp = np.max([tp,1])
 
-                list_tpr[i] = tp/(tp+fn)
+                list_tpr[i] += tp/(tp+fn)
             #print(output[0,0:10])
             #print(label_output[0:10])
             #print(label[0][0:10])
-
-
 
         val_loss = val_loss/len(loader_test)
         if hp.scheduler.type == 'Plateau' : 
@@ -224,6 +227,7 @@ for epoch in range(num_epochs):
         for i in range(len(list_threshold)) : 
            list_f1[i] = list_f1[i]/len(loader_test)
            list_acc[i] = list_acc[i]/len(loader_test)
+           list_tpr[i] = list_tpr[i]/len(loader_test)
            #print( 'thr : '+str(list_threshold[i])+' | f1 : ' + str(list_f1[i]) +' | acc : ' + str(list_acc[i]))
            #print('thr : {:.2f} | f1 : {:.4f} | acc : {:.4f}'.format(list_threshold[i],list_f1[i],list_acc[i]))
            print('|   {:.2f}    |  {:.4f} |  {:.4f}  | {:.4f} | '.format(list_threshold[i],list_f1[i],list_acc[i],list_tpr[i]))

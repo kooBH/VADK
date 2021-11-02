@@ -1,6 +1,6 @@
 model: 
-  type : 'MISO64'
-  n_mels : 64
+  type : 'MISO32v2'
+  n_mels : 32
 ---
 train:
   epoch: 200
@@ -34,7 +34,7 @@ audio:
   samplerate : 16000
 ---
 data:
-  root: '/home/data/kbh/VADK/AVTR/mel_64/'
+  root: '/home/data/kbh/VADK/AVTR/mel32/'
 ---
 log:
   root: '/home/nas/user/kbh/VADK/'
