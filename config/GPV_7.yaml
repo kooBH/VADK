@@ -1,10 +1,13 @@
 model: 
-  type : 'MISO64'
-  n_mels : 64
+  type : 'GPV'
+  n_mels : 40
+  dropout : 0.2
+  spec_aug : true
 ---
 train:
   epoch: 200
-  batch_size: 12
+  nframe : 600
+  batch_size: 128
   num_workers: 8
   summary_interval: 10
 ---
@@ -13,7 +16,7 @@ loss:
 ---
 optim:
   type: "Adam" # Adam
-  Adam: 0.0001
+  Adam: 0.001
   Adabound:
     initial: 0.001
     final: 0.05
@@ -29,12 +32,12 @@ scheduler:
     min_lr: 0.000005
 ---
 audio:
-  shift : 160
-  frame : 640
+  shift : 128
+  frame : 512
   samplerate : 16000
 ---
 data:
-  root: '/home/data/kbh/VADK/AVTR/mel_64/'
+  root: '/home/data/kbh/VADK/AVTR/mel40/'
 ---
 log:
   root: '/home/nas/user/kbh/VADK/'

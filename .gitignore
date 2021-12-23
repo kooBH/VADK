@@ -137,7 +137,11 @@ dmypy.json
 
 # private
 key
+*.private
 
 # data
 *.wav
 *.pt
+
+# script
+*.sh

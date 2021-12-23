@@ -28,7 +28,7 @@ class RNN_simple(nn.Module):
             ),
             nn.ReLU()
         )
-        self.out = nn.Softmax()
+        self.out = nn.Sigmoid()
 
     def forward(self,x):
 
@@ -46,5 +46,5 @@ class RNN_simple(nn.Module):
         #print('6 : ' + str(x.shape))
         x = self.out(x)
         #print('7 : ' + str(x.shape))
-        x = torch.squeeze(x)
+        x = x[:,:,0]
         return x

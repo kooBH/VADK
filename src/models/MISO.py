@@ -83,11 +83,15 @@ class MISO_1(nn.Module):
         for i, encoder in enumerate(self.encoders):
             x = encoder(x)
             # print("i:{}".format(i))
-            # print("x:{}".format(x.shape))
+           # print("x:{}".format(x.shape))
         
 
         #Reshape [B,384, T ,1] -> [B,384,T]
+
+
         x = torch.squeeze(x)
+
+        exit()
 
         #[B,384,T] -> [B,384,T]
         tcn_out = self.TCN(x)

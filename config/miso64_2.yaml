@@ -1,6 +1,7 @@
 model: 
   type : 'MISO64'
   n_mels : 64
+  dropout : 0.2
 ---
 train:
   epoch: 200
