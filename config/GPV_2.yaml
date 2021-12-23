@@ -2,6 +2,8 @@ model:
   type : 'GPV'
   n_mels : 40
   dropout : 0.2
+  label: 1
+  input : ""
 ---
 train:
   epoch: 200

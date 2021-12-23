@@ -18,5 +18,10 @@
 #python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:1'  
 
 ## 2021-10-07
-TARGET=GPV_4
+#TARGET=GPV_4
+#python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:1'  
+
+
+## 2021-11-21
+TARGET=DGD_1
 python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:1'  

@@ -142,3 +142,6 @@ key
 # data
 *.wav
 *.pt
+
+# script
+*.sh

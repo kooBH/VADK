@@ -58,9 +58,9 @@ def parse_poolingfunction(poolingfunction_name='mean', **kwargs):
     """
     poolingfunction_name = poolingfunction_name.lower()
     if poolingfunction_name == 'mean':
-        return MeanPool(pooldim=1)
+        return MeanPool(pooldim=kwargs['outputdim'])
     elif poolingfunction_name == 'linear':
-        return LinearSoftPool(pooldim=1)
+        return LinearSoftPool(pooldim=kwargs['outputdim'])
 
 
 class Block2D(nn.Module):
@@ -80,17 +80,19 @@ class Block2D(nn.Module):
         return self.block(x)
 
 
-
-
 class GPV(nn.Module):
-    def __init__(self, hp,inputdim=32, outputdim=1, **kwargs):
+    def __init__(self, hp, channel_in=1,inputdim=32, outputdim=1, **kwargs):
         super().__init__()
         features = nn.ModuleList()
 
         self.hp = hp
+        
+        self.channel_in = channel_in
+
+        self.outputdim = outputdim
 
         self.features = nn.Sequential(
-            Block2D(1, 32),
+            Block2D(self.channel_in, 32),
             nn.LPPool2d(4, (2, 4)),
             Block2D(32, 128),
             Block2D(128, 128),
@@ -102,7 +104,7 @@ class GPV(nn.Module):
             nn.Dropout(0.3),
         )
         with torch.no_grad():
-            rnn_input_dim = self.features(torch.randn(1, 1, 500,
+            rnn_input_dim = self.features(torch.randn(1, channel_in, 500,
                                                       inputdim)).shape
             rnn_input_dim = rnn_input_dim[1] * rnn_input_dim[-1]
 
@@ -110,28 +112,32 @@ class GPV(nn.Module):
                           128,
                           bidirectional=True,
                           batch_first=True)
-        self.temp_pool = parse_poolingfunction(kwargs.get(
-            'temppool', 'linear'),
-                                               inputdim=256,
-                                               outputdim=outputdim)
+        self.temp_pool = parse_poolingfunction(
+            kwargs.get('temppool', 'linear'),
+            inputdim=256,
+            outputdim=outputdim
+        )
         self.outputlayer = nn.Linear(256, outputdim)
         self.features.apply(init_weights)
         self.outputlayer.apply(init_weights)
 
     def forward(self, x):
-        x = x.permute(0,2,1)
-        batch, time, dim = x.shape
-        x = x.unsqueeze(1)
+        x = x.permute(0,1,3,2)
+        batch, ch, time, dim = x.shape
         x = self.features(x)
-        x = x.transpose(1, 2).contiguous().flatten(-2)
+        #x = x.transpose(1, 2).contiguous().flatten(-2)
+        x = x.permute(0,2,1,3)
+        x = x.reshape((x.shape[0],x.shape[1],x.shape[2]*x.shape[3]))
         x, _ = self.gru(x)
         decision_time = torch.sigmoid(self.outputlayer(x)).clamp(1e-7, 1.)
+        #print(decision_time.shape)
         decision_time = torch.nn.functional.interpolate(
             decision_time.transpose(1, 2),
-            time,
+            (time),
             mode='linear',
-            align_corners=False).transpose(1, 2)
-        decision = self.temp_pool(x, decision_time).clamp(1e-7, 1.).squeeze(1)
+            align_corners=False)
+        #print('dicision_time : '+ str(decision_time.shape))
+        #decision = self.temp_pool(x, decision_time).clamp(1e-7, 1.).squeeze(1)
 
         #print('-----')
         #print(decision.shape)
@@ -143,4 +149,5 @@ class GPV(nn.Module):
 
         #return decision, decision_time
         #print(decision_time[0,0:10,0])
-        return decision_time[:,:,0]
+        #return decision_time[:,:,0]
+        return decision_time

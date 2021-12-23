@@ -19,8 +19,12 @@ from models.MISO32v2 import MISO32v2
 from models.MISO64 import MISO64
 #from models.MISO_stft import MISO_stft
 from models.GPV import GPV
+from models.DGD import DGD
 
+from utils.specaugmentation import spec_augment
 
+def aug(hp,data):
+    return data
 
 ## arguments
 parser = argparse.ArgumentParser()
@@ -72,9 +76,19 @@ print('len test loader : '+str(len(loader_test)))
 
 ## model
 model = None
+output_dim = hp.model.label
+
+channel_in = 1
+if 'd' in hp.model.input : 
+    channel_in +=1
+if 'dd' in hp.model.input : 
+    channel_in +=1
+
 
 if hp.model.type == "GPV":
-    model = GPV(hp,inputdim=hp.model.n_mels).to(device)
+    model = GPV(hp,channel_in=channel_in,inputdim=hp.model.n_mels,outputdim=hp.model.label).to(device)
+elif hp.model.type == "DGD":
+    model = DGD(channel_in=channel_in,dim_input=hp.model.n_mels,dim_output=hp.model.label).to(device)
 elif hp.model.type =="MISO32":
     num_bottleneck = 5
     en_bottleneck_channels = [1,24,32,64,128,384,64] # 16: 2*Ch 
@@ -152,6 +166,8 @@ for epoch in range(num_epochs):
         step += 1
         ## img = [n_batch, n_mels, n_frame]
 
+        data=aug(hp,data)
+
         data = data.to(device)
         label = label.to(device)
 
@@ -175,32 +191,31 @@ for epoch in range(num_epochs):
         val_loss = 0.0
         f1_score = 0
         #list_threshold = [0.1,0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-        list_threshold = [ 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.8,0.9]
+        list_threshold = [ 0.1, 0.2, 0.3,  0.4, 0.5, 0.6, 0.7, 0.8,0.9]
         list_f1 = np.zeros(len(list_threshold))
         list_acc= np.zeros(len(list_threshold))
         list_tpr = np.zeros(len(list_threshold))
 
         for j, (data,label) in tqdm(enumerate(loader_test)):
+            #data=aug(hp,data)
+
             data = data.to(device)
             label = label.to(device)
-
             output = model(data)
 
-            #print(output.shape)
-            #print(label.shape)
 
             loss = criterion(output.float(), label.float())
             val_loss +=loss.item()
 
             for i in range(len(list_threshold)) : 
-                label_output = (output[0] > list_threshold[i]).float()
+                label_output = (output[:,0,:]  > list_threshold[i]).float()
 
                 # to avoid zero_division error
-                label_output[0]=1
-                label_output[1]=0
+                label_output[:,0]=1
+                label_output[:,1]=0
 
-                pred = label_output.cpu().detach().numpy()
-                true = label[0].cpu().detach().numpy()
+                pred = torch.squeeze(label_output).cpu().detach().numpy()
+                true = torch.squeeze(label[:,0,:]).cpu().detach().numpy()
 
                 list_f1[i] +=sklearn.metrics.f1_score(pred,true)
 
@@ -223,14 +238,7 @@ for epoch in range(num_epochs):
         else :
             scheduler.step()
 
-        print('--threshold---f1_score---accuracy---TPR--')
-        for i in range(len(list_threshold)) : 
-           list_f1[i] = list_f1[i]/len(loader_test)
-           list_acc[i] = list_acc[i]/len(loader_test)
-           list_tpr[i] = list_tpr[i]/len(loader_test)
-           #print( 'thr : '+str(list_threshold[i])+' | f1 : ' + str(list_f1[i]) +' | acc : ' + str(list_acc[i]))
-           #print('thr : {:.2f} | f1 : {:.4f} | acc : {:.4f}'.format(list_threshold[i],list_f1[i],list_acc[i]))
-           print('|   {:.2f}    |  {:.4f} |  {:.4f}  | {:.4f} | '.format(list_threshold[i],list_f1[i],list_acc[i],list_tpr[i]))
+
 
 
         print('TEST::Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, j+1, len(loader_test), val_loss))
@@ -239,6 +247,15 @@ for epoch in range(num_epochs):
 
         writer.log_value(val_loss,step,'test loss['+hp.loss.type+']'    )
         #writer.log_value(f1_score,step,'test f1_score'    )
+
+        print('--threshold---f1_score---accuracy---TPR--')
+        for i in range(len(list_threshold)) : 
+           list_f1[i] = list_f1[i]/len(loader_test)
+           list_acc[i] = list_acc[i]/len(loader_test)
+           list_tpr[i] = list_tpr[i]/len(loader_test)
+           #print( 'thr : '+str(list_threshold[i])+' | f1 : ' + str(list_f1[i]) +' | acc : ' + str(list_acc[i]))
+           #print('thr : {:.2f} | f1 : {:.4f} | acc : {:.4f}'.format(list_threshold[i],list_f1[i],list_acc[i]))
+           print('|   {:.2f}    |  {:.4f} |  {:.4f}  | {:.4f} | '.format(list_threshold[i],list_f1[i],list_acc[i],list_tpr[i]))
 
 
     torch.save(model.state_dict(), modelsave_path +"/lastmodel.pt")

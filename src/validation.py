@@ -15,6 +15,7 @@ from models.GPV import GPV
 from models.MISO import MISO_1
 from models.MISO64 import MISO64
 from models.MISO32v2 import MISO32v2
+from models.DGD import DGD
 
 ## arguments
 parser = argparse.ArgumentParser()
@@ -52,8 +53,18 @@ print('len test loader : '+str(len(loader_test)))
 ## model
 model = None
 
+channel_in = 1
+if 'd' in hp.model.input : 
+    channel_in +=1
+if 'dd' in hp.model.input : 
+    channel_in +=1
+
+
+
 if hp.model.type == "GPV":
-    model = GPV(hp,inputdim=hp.model.n_mels).to(device)
+    model = GPV(hp,channel_in=channel_in,inputdim=hp.model.n_mels,outputdim=hp.model.label).to(device)
+if hp.model.type == "DGD":
+    model = DGD(channel_in=channel_in,dim_input=hp.model.n_mels,dim_output=hp.model.label).to(device)
 elif hp.model.type =="MISO":
     num_bottleneck = 5
     en_bottleneck_channels = [1,24,32,64,128,384,64] # 16: 2*Ch 
@@ -102,14 +113,14 @@ with torch.no_grad():
         output = model(data)
 
         for i in range(len(list_threshold)) : 
-            label_output = (output[0] > list_threshold[i]).float()
+            label_output = (output[:,0,:] > list_threshold[i]).float()
 
             # to avoid zero_division error
-            label_output[0]=1
-            label_output[1]=0
+            label_output[:,0]=1
+            label_output[:,1]=0
 
-            pred = label_output.cpu().detach().numpy()
-            true = label[0].cpu().detach().numpy()
+            pred = torch.squeeze(label_output).cpu().detach().numpy()
+            true = torch.squeeze(label[:,0,:]).cpu().detach().numpy()
 
             list_f1[i] +=sklearn.metrics.f1_score(pred,true)
 

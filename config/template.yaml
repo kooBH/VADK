@@ -1,6 +1,7 @@
 model:
   type :  # GPV
   n_mels : 40
+  label: 1
 ---
 train:
   epoch: 50

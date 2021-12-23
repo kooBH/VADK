@@ -8,6 +8,7 @@ from utils.hparams import HParam
 import torch.multiprocessing as mp
 from torch.multiprocessing import Pool, Process, set_start_method
 from models.GPV import GPV
+from models.DGD import DGD
 
 
 parser = argparse.ArgumentParser()
@@ -17,12 +18,18 @@ parser.add_argument('-c','--config',type=str,required=True)
 parser.add_argument('-d','--device',type=str,default='cuda:0')
 parser.add_argument('-n','--num_process',type=int,default=8)
 parser.add_argument('-p','--chkpt',type=str,required=True)
+parser.add_argument('-t','--threshold',type=float,default=0.5)
 args = parser.parse_args()
 
 hp = HParam(args.config)
 print('NOTE::Loading configuration :: ' + args.config)
 
+print('inference : {}'.format(args.dir_input))
 list_data = glob.glob(os.path.join(args.dir_input,'*.wav'))
+print('length : ' + str(len(list_data)))
+
+if len(list_data) == 0:
+    raise Exception('Zero targets....')
 
 # Params
 device = args.device
@@ -36,9 +43,17 @@ n_shift = hp.audio.shift
 num_epochs = 1
 batch_size = 1
 
+channel_in = 1
+if 'd' in hp.model.input : 
+    channel_in +=1
+if 'dd' in hp.model.input : 
+    channel_in +=1
+
 model = None
 if hp.model.type == "GPV":
-    model = GPV(hp,inputdim=hp.model.n_mels).to(device)
+    model = GPV(hp,channel_in=channel_in,inputdim=hp.model.n_mels,outputdim=hp.model.label).to(device)
+elif hp.model.type == "DGD":
+    model = DGD(channel_in=channel_in,dim_input=hp.model.n_mels,dim_output=hp.model.label).to(device)
 if model is None :
     raise Exception('No Model specified.')
 
@@ -56,7 +71,7 @@ if not args.chkpt == None :
    model.load_state_dict(torch.load(args.chkpt, map_location=device))
 
 
-threshold = 0.5
+threshold = args.threshold
 
 def inference(batch):
     for idx in batch :
@@ -68,6 +83,23 @@ def inference(batch):
         mel = np.matmul(mel_basis,np.abs(spec))
         pt = torch.from_numpy(mel)
         pt = pt.float()
+        pt = torch.unsqueeze(pt,dim=0)
+
+        shape = pt.shape
+
+        if 'd' in hp.model.input :
+            d = torch.zeros(shape)
+            # C, dim, T
+            d[:,:-1,:] = pt[0,1:,:]-pt[0,0:-1,:]
+            # channel-wise concat
+            pt = torch.cat((pt,d),0)
+        
+        if 'dd' in hp.model.input :
+            dd = torch.zeros(shape)
+            dd[:,:-2,:] = pt[0,1:-1,:]-pt[0,0:-2,:]
+            # channel-wise concat
+            pt = torch.cat((pt,dd),0)
+
         pt = torch.unsqueeze(pt,dim=0)
         pt = pt.cuda()
 
