@@ -4,3 +4,9 @@
 [submodule "webrtc_rnnvad"]
 	path = webrtc_rnnvad
 	url = https://github.com/jzi040941/webrtc_rnnvad.git
+[submodule "cpp/lib/STFT"]
+	path = cpp/lib/STFT
+	url = https://github.com/koobh/STFT
+[submodule "cpp/lib/WAV"]
+	path = cpp/lib/WAV
+	url = https://github.com/koobh/WAV
