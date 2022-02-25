@@ -130,7 +130,6 @@ dmypy.json
 
 # output
 *.csv
-*.txt
 *.bin
 *.mat
 
@@ -141,6 +140,8 @@ key
 # data
 *.wav
 *.pt
+*.onnx
 
 # script
 *.sh
+
