@@ -7,7 +7,7 @@ class VAD_dataset(torch.utils.data.Dataset):
         super(VAD_dataset,self).__init__()
         self.hp = hp
         root = hp.data.root
-        #self.nframe = hp.train.nframe
+        self.nframe = hp.train.nframe
         self.is_train = is_train
 
         if is_train : 
@@ -26,10 +26,20 @@ class VAD_dataset(torch.utils.data.Dataset):
         # data["label"] :
         # - binary label
         data = torch.load(path_item)
-        data["mel"] = torch.unsqueeze(data["mel"],0)
 
-        #idx_start = np.random.randint(data["mel"].shape[1]-self.nframe)
-        #idx_end = idx_start + self.nframe
+        if self.nframe > data["mel"].shape[1]:
+            raise Exception("ERROR:: nframe is too large | " +str(self.nframe) +" > " + str(data["mel"].shape[1]))
+        idx_start = np.random.randint(data["mel"].shape[1]-self.nframe)
+        idx_end = idx_start + self.nframe
+
+        data["mel"] = data["mel"][:,idx_start:idx_end]        
+        data["mel"] = torch.unsqueeze(data["mel"],0)
+        data["label"] = data["label"][idx_start:idx_end]
+        
+        if self.hp.model.specaug  and self.is_train:
+            freq_l = np.random.randint(low=self.hp.specaug.freq_min,high=self.hp.specaug.freq_max)
+            freq_s = np.random.randint(low=0,high=self.hp.model.n_mels-freq_l)
+            data["mel"][0,freq_s:freq_s+freq_l,:] = 0
 
         shape = data["mel"].shape
 
@@ -48,13 +58,15 @@ class VAD_dataset(torch.utils.data.Dataset):
 
         #mel = data["mel"][:,idx_start:idx_end].float()
         #label = data["label"][idx_start:idx_end]
-        if self.hp.model.label == 1:
-            data["label"] = torch.unsqueeze(data["label"],0)
-        elif self.hp.model.label == 2:
-            tmp_label = torch.zeros(2,data["label"].shape[0])
-            tmp_label[0,:] = data["label"]
-            tmp_label[1,:] = (~data["label"].bool()).float()
-            data["label"] = tmp_label
+        data["label"] = torch.unsqueeze(data["label"],0)
+
+        #if self.hp.model.label == 1:
+        #    data["label"] = torch.unsqueeze(data["label"],0)
+        #elif self.hp.model.label == 2:
+        #    tmp_label = torch.zeros(2,data["label"].shape[0])
+        #    tmp_label[0,:] = data["label"]
+        #    tmp_label[1,:] = (~data["label"].bool()).float()
+        #    data["label"] = tmp_label
 
         return data["mel"].float(),data["label"]
         #return mel,label

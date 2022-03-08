@@ -34,7 +34,7 @@ print(input.shape)
 
 # inference stage -------------------------------------------
 output = model(input)
-print(output)
+print(output.shape)
 torch.onnx.export(model, input, "GPV.onnx", input_names=["input"], output_names=["output"], export_params=True,opset_version=11)
 
 print("---- EXPORTED ---- ")

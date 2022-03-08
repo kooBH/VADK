@@ -19,6 +19,8 @@ parser.add_argument('-d','--device',type=str,default='cuda:0')
 parser.add_argument('-n','--num_process',type=int,default=8)
 parser.add_argument('-p','--chkpt',type=str,required=True)
 parser.add_argument('-t','--threshold',type=float,default=0.5)
+parser.add_argument('-u','--unit',type=int,default=-1)
+
 args = parser.parse_args()
 
 hp = HParam(args.config)
@@ -34,6 +36,7 @@ if len(list_data) == 0:
 # Params
 device = args.device
 torch.cuda.set_device(device)
+unit = args.unit
 
 n_mels = hp.model.n_mels
 sr = hp.audio.samplerate
@@ -59,8 +62,6 @@ if model is None :
 
 mel_basis = librosa.filters.mel(sr=sr, n_fft=n_fft, n_mels=n_mels)
 
-# Dirs
-os.makedirs(args.dir_output,exist_ok=True)
 # Model 
 model.load_state_dict(torch.load(args.chkpt,map_location=device))
 model.share_memory()
@@ -69,7 +70,6 @@ model.eval()
 if not args.chkpt == None : 
    print('NOTE::Loading pre-trained model : '+ args.chkpt)
    model.load_state_dict(torch.load(args.chkpt, map_location=device))
-
 
 threshold = args.threshold
 
@@ -103,12 +103,34 @@ def inference(batch):
         pt = torch.unsqueeze(pt,dim=0)
         pt = pt.cuda()
 
-        with torch.no_grad():
-            output = model(pt)
-        output = torch.squeeze(output)
-        for idx in range(len(output)):
-            if output[idx] < threshold :
-                raw[(idx-1)*128:idx*128]=0
+        # pt [ B , C , F, T]
+
+        # offline  
+        if unit == -1 : 
+            with torch.no_grad():
+                output = model(pt)
+            output = torch.squeeze(output)
+            for idx2 in range(len(output)):
+                if output[idx2] < threshold :
+                    raw[(idx2-1)*128:idx2*128]=0
+        # online 
+        else :  
+            n_unit = int(np.ceil(pt.shape[3]/unit))
+            # process per unit-frame
+            with torch.no_grad():
+                for i in range(n_unit) : 
+                    if i == n_unit-1 :
+                        continue
+                    else :
+                        tmp_pt = pt[:,:,:,i*unit:]
+
+                    output = model(tmp_pt)
+                    output = torch.squeeze(output)
+                    for idx2 in range(len(output)):
+                        if output[idx2] < threshold :
+                            raw[(i*unit+idx2-1)*128:(i*unit+idx2)*128]=0
+            
+
         sf.write(os.path.join(args.dir_output,name_target),raw,16000)
 
 if __name__ == '__main__':

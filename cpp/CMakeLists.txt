@@ -21,17 +21,15 @@ include(lib/STFT/mel/mel.cmake)
 list(APPEND SRC
 	main.cpp
   )
-
+  
 list(APPEND INCL
   ${CMAKE_CURRENT_LIST_DIR}/.
   ${PATH_TRT}/include
   )
-  
 list(APPEND LINKLIBS
 	${PATH_TRT}/lib/nvinfer.lib
 	${PATH_TRT}/lib/nvonnxparser.lib
   )
-  
 if(MSVC)
   list(APPEND COMPILE_OPTION
   
