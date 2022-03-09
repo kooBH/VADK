@@ -62,9 +62,9 @@ if 'dd' in hp.model.input :
 
 
 if hp.model.type == "GPV":
-    model = GPV(hp,channel_in=channel_in,inputdim=hp.model.n_mels,outputdim=hp.model.label).to(device)
+    model = GPV(hp,channel_in=channel_in,inputdim=hp.model.n_mels,outputdim=1).to(device)
 if hp.model.type == "DGD":
-    model = DGD(channel_in=channel_in,dim_input=hp.model.n_mels,dim_output=hp.model.label).to(device)
+    model = DGD(channel_in=channel_in,dim_input=hp.model.n_mels,dim_output=1).to(device)
 elif hp.model.type =="MISO":
     num_bottleneck = 5
     en_bottleneck_channels = [1,24,32,64,128,384,64] # 16: 2*Ch 

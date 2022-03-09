@@ -4,7 +4,6 @@ sys.path.append(os.path.abspath("../src/models"))
 
 from GPV import GPV
 
-
 model = GPV()
 example_input = torch.rand(1, 3, 32, 32)
 print('loading pre-trainded model..')

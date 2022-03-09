@@ -1,0 +1,9 @@
+sklean
+pandas
+tqdm
+liborsa
+torch==1.8.0
+tensorboardX
+soundfile
+pyyaml
+numpy

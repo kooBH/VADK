@@ -76,7 +76,7 @@ print('len test loader : '+str(len(loader_test)))
 
 ## model
 model = None
-output_dim = hp.model.label
+output_dim = 1
 
 channel_in = 1
 if 'd' in hp.model.input : 
@@ -86,9 +86,9 @@ if 'dd' in hp.model.input :
 
 
 if hp.model.type == "GPV":
-    model = GPV(hp,channel_in=channel_in,inputdim=hp.model.n_mels,outputdim=hp.model.label).to(device)
+    model = GPV(hp,channel_in=channel_in,inputdim=hp.model.n_mels,outputdim=output_dim).to(device)
 elif hp.model.type == "DGD":
-    model = DGD(channel_in=channel_in,dim_input=hp.model.n_mels,dim_output=hp.model.label).to(device)
+    model = DGD(channel_in=channel_in,dim_input=hp.model.n_mels,dim_output=output_dim).to(device)
 elif hp.model.type =="MISO32":
     num_bottleneck = 5
     en_bottleneck_channels = [1,24,32,64,128,384,64] # 16: 2*Ch 
@@ -183,7 +183,7 @@ for epoch in range(num_epochs):
         optimizer.step()
 
         if (idx+1) % hp.train.summary_interval == 1:
-            print("TRAIN:: Epoch [{}/{}], Step[{}/{}], Loss:{:.4f}".format(epoch+1, num_epochs, idx+1,len(loader_train), loss.item()))
+            print("TRAIN::{}: Epoch [{}/{}], Step[{}/{}], Loss:{:.4f}".format(args.version_name,epoch+1, num_epochs, idx+1,len(loader_train), loss.item()))
 
     ## Eval
     model.eval()
@@ -241,7 +241,7 @@ for epoch in range(num_epochs):
 
 
 
-        print('TEST::Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, j+1, len(loader_test), val_loss))
+        print('TEST::{}:Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(args.version_name,epoch+1, num_epochs, j+1, len(loader_test), val_loss))
 
         # logging
 
