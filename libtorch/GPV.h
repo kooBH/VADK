@@ -91,19 +91,19 @@ void GPV::process(double** input, double* prob) {
 
     // delta
     case 1:
-      for (int j = 0; j < n_unit; j++) {
-        for (int k = 0; k < n_mels - 1; k++) {
-          data[n_mel_unit + k * n_unit + j] = input[j][k + 1] - input[j][k];
+      for (int j = 0; j < n_unit-1; j++) {
+        for (int k = 0; k < n_mels; k++) {
+          data[n_mel_unit + k * n_unit + j] = input[j+1][k] - input[j][k];
         }
       }
       break;
 
     // delta-delta
     case 2:
-      for (int j = 0; j < n_unit; j++) {
-        for (int k = 0; k < n_mels - 2; k++) {
+      for (int j = 0; j < n_unit-1; j++) {
+        for (int k = 0; k < n_mels; k++) {
           data[2 * n_mel_unit + k * n_unit + j]
-            = data[n_mel_unit + (k + 1) * n_unit + j] = data[n_mel_unit + (k)*n_unit + j];
+            = data[n_mel_unit + k * n_unit + j+1] - data[n_mel_unit + k*n_unit + j];
         }
       }
       break;
@@ -113,26 +113,32 @@ void GPV::process(double** input, double* prob) {
       exit(-1);
     }
   }
+
+  // Debugging
+  for (int t = 0; t < 10; t++) {
+    printf("==== %d ====\n",t);
+    for (int c = 0; c < n_ch; c++) {
+      for (int m = 0; m < 10; m++)
+        printf("%.4e ",data[c*n_mel_unit+m*n_unit + t]);
+      printf("\n");
+    }
+    printf("\n");
+  }
+  exit(0);
+
+
   try {
   //  printf("GPV::from_blob\n");
     //auto options = torch::TensorOptions().dtype(torch::kFloat32);
     torch::Tensor tensor_data = torch::from_blob(data, { 1, n_ch, n_mels, n_unit }, torch::kFloat32);
 
-    //at::Tensor tensor_data;
-
-
-    //std::cout << tensor_data.data() << std::endl;
-
-
    // printf("GPV::forward\n");
-    //tensor_result = module.forward({ tensor_data }).toTensor();
     torch::Tensor tensor_result = module.forward({ tensor_data }).toTensor();
 
     //std::cout << "tensor shape: " << tensor_result.sizes() << std::endl;
 
     // [1, 1, 50]
     float* result = tensor_result.data<float>();
-
 
     for (int x = 0; x < tensor_result.sizes()[2]; ++x){
       //std::cout << (*result) << " ";
@@ -154,6 +160,28 @@ void GPV::process(double** input, double* prob) {
     auto maxOut = std::get<0>(maxResult).item<float>();
   */
 
+}
+
+
+void _TEST_BLOB_DIM() {
+  
+  float* data;
+  data = new float [2 * 3];
+
+  int cnt = 0;
+  printf("== host==\n");
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 3; j++) {
+      printf("%d ",cnt);
+      data[3 * i + j] = cnt++;
+    }
+    printf("\n");
+  }
+
+  torch::Tensor tensor_data = torch::from_blob(data, { 2,3 }, torch::kFloat32);
+
+  printf("== tensor ==\n");
+  std::cout << tensor_data << std::endl;
 }
 
 #endif
