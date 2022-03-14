@@ -24,34 +24,28 @@ private :
   // [C, F, T];
   float * data; 
 
-
-
   torch::jit::script::Module module;
-
 
   // Aux var
   int n_mel_unit;
 
-
 public :
-  inline GPV(std::string path, int n_mels, int n_unit);
+  inline GPV(std::string path, int n_mels);
   inline ~GPV();
 
   // input[n_unit][n_mels], prob[n_unit]
-  inline void process(double** input, double* prob);
-
+  inline void process(double** input, double* prob, int n_unit);
 };
 
 
-GPV::GPV(std::string path, int n_mels_, int n_unit_) {
+GPV::GPV(std::string path, int n_mels_) {
   n_mels = n_mels_;
-  n_unit = n_unit_;
-  n_mel_unit = n_mels * n_unit;
 
   /* Model Loading*/
   try {
     std::cout << "GPV::loading : " << path << std::endl;
     module = torch::jit::load("C:/workplace/VADK/libtorch/build/GPV.pt");
+    module.eval();
 
     //for(auto x : module.attributes())
     //  std::cout << x<<std::endl;
@@ -63,18 +57,20 @@ GPV::GPV(std::string path, int n_mels_, int n_unit_) {
     exit(-1);
   }
 
-  /* Data alloc */
-  data = new float[n_ch * n_mels * n_unit];  
 
 }
 
 GPV::~GPV(){
-  delete[] data;
 }
 
 
 // input[n_unit][n_mels], prob[n_unit]
-void GPV::process(double** input, double* prob) {
+void GPV::process(double** input, double* prob,int n_unit_) {
+
+  n_unit = n_unit_;
+  n_mel_unit = n_mels * n_unit;
+  /* Data alloc */
+  data = new float[n_ch * n_mels * n_unit];  
   memset(data, 0, sizeof(float) * n_ch * n_mels * n_unit);
 
  // printf("GPV::input\n");
@@ -115,27 +111,31 @@ void GPV::process(double** input, double* prob) {
   }
 
   // Debugging
-  for (int t = 0; t < 10; t++) {
-    printf("==== %d ====\n",t);
+  /*
+  for (int t = 0; t < 2; t++) {
+    printf("==== d %d ====\n",t);
     for (int c = 0; c < n_ch; c++) {
-      for (int m = 0; m < 10; m++)
+      for (int m = 0; m < 5; m++)
         printf("%.4e ",data[c*n_mel_unit+m*n_unit + t]);
       printf("\n");
     }
     printf("\n");
   }
-  exit(0);
-
+  */
 
   try {
   //  printf("GPV::from_blob\n");
     //auto options = torch::TensorOptions().dtype(torch::kFloat32);
     torch::Tensor tensor_data = torch::from_blob(data, { 1, n_ch, n_mels, n_unit }, torch::kFloat32);
+   //torch::Tensor tensor_data = torch::ones({ 1, n_ch, n_mels, n_unit }, torch::kFloat32);
+   // std::cout << tensor_data[0][0][0][1] << std::endl;
+
+    //std::cout << "tensor data: " << tensor_data.sizes() << std::endl;
 
    // printf("GPV::forward\n");
     torch::Tensor tensor_result = module.forward({ tensor_data }).toTensor();
 
-    //std::cout << "tensor shape: " << tensor_result.sizes() << std::endl;
+   // std::cout << "tensor shape: " << tensor_result.sizes() << std::endl;
 
     // [1, 1, 50]
     float* result = tensor_result.data<float>();
@@ -159,6 +159,8 @@ void GPV::process(double** input, double* prob) {
     auto maxIndex = std::get<1>(maxResult).item<float>();
     auto maxOut = std::get<0>(maxResult).item<float>();
   */
+
+  delete[] data;
 
 }
 
