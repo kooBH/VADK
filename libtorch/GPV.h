@@ -44,7 +44,7 @@ GPV::GPV(std::string path, int n_mels_) {
   /* Model Loading*/
   try {
     std::cout << "GPV::loading : " << path << std::endl;
-    module = torch::jit::load("C:/workplace/VADK/libtorch/build/GPV.pt");
+    module = torch::jit::load(path);
     module.eval();
 
     //for(auto x : module.attributes())
