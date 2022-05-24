@@ -8,11 +8,19 @@ mel 40 -> GPV -> prob
 
 */
 
+//#define _USE_ONNX_
+#define _USE_TORCH_
 
+#ifdef _USE_TORCH_
 #include <torch/torch.h>
 #include <torch/script.h>
-#include <string>
+#endif 
 
+#ifdef _USE_ONNX_
+#include <onnxruntime_cxx_api.h>
+#endif
+
+#include <string>
 
 class GPV {
 private :
@@ -24,13 +32,28 @@ private :
   // [C, F, T];
   float * data; 
 
+#ifdef _USE_TORCH_
   torch::jit::script::Module module;
+#endif
+#ifdef _USE_ONNX_
+  Ort::Env env;
+  Ort::SessionOptions session_options;
+  Ort::Session session;
+
+  Ort::AllocatorWithDefaultOptions allocator;
+#endif
 
   // Aux var
   int n_mel_unit;
 
 public :
+#ifdef _USE_TORCH_
   inline GPV(std::string path, int n_mels);
+#endif
+#ifdef _USE_ONNX_
+  std::vector<int64_t> shape;
+  inline GPV(wchar_t* path, int n_mels);
+#endif
   inline ~GPV();
 
   // input[n_unit][n_mels], prob[n_unit]
@@ -38,10 +61,13 @@ public :
 };
 
 
-GPV::GPV(std::string path, int n_mels_) {
+#ifdef _USE_TORCH_
+GPV::GPV(std::string path, int n_mels_) 
+{
   n_mels = n_mels_;
 
   /* Model Loading*/
+
   try {
     std::cout << "GPV::loading : " << path << std::endl;
     module = torch::jit::load(path);
@@ -57,8 +83,18 @@ GPV::GPV(std::string path, int n_mels_) {
     exit(-1);
   }
 
+}
+#endif
+
+#ifdef _USE_ONNX_
+GPV::GPV(wchar_t* path, int n_mels_)
+:session(env,path, session_options){
+
+  n_mels = n_mels_;
 
 }
+
+#endif
 
 GPV::~GPV(){
 }
@@ -122,20 +158,13 @@ void GPV::process(double** input, double* prob,int n_unit_) {
     printf("\n");
   }
   */
-
+#ifdef _USE_TORCH_
   try {
   //  printf("GPV::from_blob\n");
     //auto options = torch::TensorOptions().dtype(torch::kFloat32);
     torch::Tensor tensor_data = torch::from_blob(data, { 1, n_ch, n_mels, n_unit }, torch::kFloat32);
-   //torch::Tensor tensor_data = torch::ones({ 1, n_ch, n_mels, n_unit }, torch::kFloat32);
-   // std::cout << tensor_data[0][0][0][1] << std::endl;
-
-    //std::cout << "tensor data: " << tensor_data.sizes() << std::endl;
-
-   // printf("GPV::forward\n");
     torch::Tensor tensor_result = module.forward({ tensor_data }).toTensor();
 
-   // std::cout << "tensor shape: " << tensor_result.sizes() << std::endl;
 
     // [1, 1, 50]
     float* result = tensor_result.data<float>();
@@ -151,7 +180,35 @@ void GPV::process(double** input, double* prob,int n_unit_) {
     exit(-1);
   
   }
+#endif
+#ifdef _USE_ONNX_
+  shape.push_back(1);
+  shape.push_back(n_ch);
+  shape.push_back(n_mels);
+  shape.push_back(n_unit);
 
+  printf("GPV::n_unit:%d | %d %d\n",n_unit,n_ch,n_mels);
+
+  const char* input_names[] = { "input" };
+  const char* output_names[] = { "output" };
+
+  auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+  Ort::Value input_tensor = Ort::Value::CreateTensor<float>(memory_info, data, (1*n_ch*n_mels*n_unit), shape.data(), shape.size());
+
+  auto output_tensors = session.Run(Ort::RunOptions{ nullptr }, input_names, &input_tensor, 1, output_names, 1);
+
+  float* result = output_tensors.front().GetTensorMutableData<float>();
+
+  for (int x = 0; x < n_unit; ++x) {
+    //std::cout << (*result) << " ";
+    prob[x] = (*result++);
+  }
+
+  shape.clear();
+
+#endif
+
+  
 
 
   /* ex
@@ -161,9 +218,7 @@ void GPV::process(double** input, double* prob,int n_unit_) {
   */
 
   delete[] data;
-
 }
-
 
 void _TEST_BLOB_DIM() {
   
@@ -179,11 +234,11 @@ void _TEST_BLOB_DIM() {
     }
     printf("\n");
   }
-
+#ifdef _USE_TORCH_
   torch::Tensor tensor_data = torch::from_blob(data, { 2,3 }, torch::kFloat32);
-
   printf("== tensor ==\n");
   std::cout << tensor_data << std::endl;
+#endif
 }
 
 #endif
