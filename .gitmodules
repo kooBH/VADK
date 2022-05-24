@@ -10,3 +10,9 @@
 [submodule "cpp/lib/WAV"]
 	path = cpp/lib/WAV
 	url = https://github.com/koobh/WAV
+[submodule "libtorch/lib/WAV"]
+	path = libtorch/lib/WAV
+	url = https://github.com/koobh/WAV
+[submodule "libtorch/lib/STFT"]
+	path = libtorch/lib/STFT
+	url = https://github.com/koobh/STFT
