@@ -19,6 +19,8 @@ n_frame_shift = 300
 root_input = '/home/data2/kbh/AVTR/extract/'
 root_output = '/home/data2/kbh/VADK/AVTR/'
 
+mel_basis = librosa.filters.mel(sr=sr, n_fft=n_fft, n_mels=n_mels)
+
 # split into train / test 
 list_data = [x for x in glob.glob(os.path.join(root_input,'wav','*.wav'))]
 
@@ -34,7 +36,8 @@ def process(idx):
 
     ## Data
     spec = librosa.stft(raw,window='hann',n_fft=n_fft,hop_length=n_shift, win_length=None,center=True,dtype=np.cdouble)
-    pt = torch.from_numpy(spec)
+    mel = np.matmul(mel_basis,np.abs(spec))
+    pt = torch.from_numpy(mel)
     pt = pt.float()
     
     # Label
@@ -53,8 +56,20 @@ def process(idx):
             label[i]=1
     label = torch.from_numpy(label)
     label = label.float()
+'''
+    ## save
+    p_end = n_frame
+    idx = 0
+    while p_end <= pt.shape[1] : 
+        t_pt = pt[:,p_end-n_frame:p_end] 
+        t_label = label[p_end-n_frame:p_end]
 
+        data = {"mel":t_pt,"label":t_label}
+        torch.save(data, os.path.join(root_output,'mel'+str(n_mels),id_data+'_'+str(idx)+'.pt'))
 
+        idx += 1
+        p_end +=n_frame_shift
+'''
 if __name__ == '__main__' : 
     cpu_num = cpu_count() -2
 

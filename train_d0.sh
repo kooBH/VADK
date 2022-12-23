@@ -24,6 +24,28 @@
 #TARGET=GPV_8
 #python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:0'
 
-# 2021-11-21
-TARGET=GPV_9
+# 2021-11-23
+#TARGET=GPV_6
+#python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:0'
+
+
+# 2021-12-31
+#TARGET=GPV_7
+#python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:0'
+
+
+# 2022-01-03
+#TARGET=GPV_9
+#python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:0'
+
+# 2022-02-21
+#TARGET=GPV_11
+#python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:0'
+
+# 2022-03-13
+#TARGET=GPV_12
+#python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:0'
+
+# 2022-03-14
+TARGET=GPV_13
 python src/trainer.py  -c ./config/${TARGET}.yaml -v ${TARGET}  --device 'cuda:0'

@@ -2,6 +2,8 @@ model:
   type : 'GPV'
   n_mels : 40
   dropout : 0.2
+  label: 1
+  input : "d_dd"
 ---
 train:
   epoch: 200
@@ -11,10 +13,7 @@ train:
   summary_interval: 10
 ---
 loss:
-  type : 'BCEWithLogitsLoss' 
-  BCELoss :
-  BCEWithLogitsLoss:
-    pos_weight: 10.
+  type: 'BCELoss' 
 ---
 optim:
   type: "Adam" # Adam

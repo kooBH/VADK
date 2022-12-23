@@ -8,7 +8,7 @@ model:
 ---
 train:
   epoch: 200
-  nframe : 600
+  nframe : 50
   batch_size: 128
   num_workers: 8
   summary_interval: 10
@@ -24,8 +24,8 @@ optim:
     final: 0.05
 ---
 specaug:
-  freq_min : 3
-  freq_max : 8
+  freq_min : 5
+  freq_max : 20
 ---
 scheduler: 
   type: 'Plateau' # Plateau, oneCycle, None

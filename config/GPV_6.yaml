@@ -1,20 +1,18 @@
 model: 
   type : 'GPV'
   n_mels : 40
-  dropout : 0.2
+  dropout : 0.3
+  input : "d_dd"
 ---
 train:
   epoch: 200
   nframe : 600
-  batch_size: 512
-  num_workers: 32
+  batch_size: 128
+  num_workers: 8
   summary_interval: 10
 ---
 loss:
-  type : 'BCEWithLogitsLoss' 
-  BCELoss :
-  BCEWithLogitsLoss:
-    pos_weight: 20.
+  type: 'BCELoss' 
 ---
 optim:
   type: "Adam" # Adam
@@ -39,7 +37,7 @@ audio:
   samplerate : 16000
 ---
 data:
-  root: '/home/data2/kbh/VADK/AVTR/mel40/'
+  root: '/home/data/kbh/VADK/AVTR/mel40/'
 ---
 log:
   root: '/home/nas/user/kbh/VADK/'

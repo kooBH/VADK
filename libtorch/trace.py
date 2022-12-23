@@ -60,7 +60,6 @@ torch.onnx.export(
         dynamic_axes={'input' : {0 : 'batch_size',3: 'n_unit'},    # variable length axes
                                 'output' : {0 : 'batch_size',3: 'n_unit'}},
         export_params=True
-)
-  
+        )
 
 print("---- EXPORTED ---- ")

@@ -24,8 +24,8 @@ optim:
     final: 0.05
 ---
 specaug:
-  freq_min : 3
-  freq_max : 8
+  freq_min : 5
+  freq_max : 20
 ---
 scheduler: 
   type: 'Plateau' # Plateau, oneCycle, None

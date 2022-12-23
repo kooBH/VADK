@@ -2,8 +2,9 @@ model:
   type : 'GPV'
   n_mels : 40
   dropout : 0.2
-  label: 1
   input : "d_dd"
+  specaug : true
+  label: 1
 ---
 train:
   epoch: 200
@@ -21,6 +22,10 @@ optim:
   Adabound:
     initial: 0.001
     final: 0.05
+---
+specaug:
+  freq_min : 10
+  freq_max : 20
 ---
 scheduler: 
   type: 'Plateau' # Plateau, oneCycle, None

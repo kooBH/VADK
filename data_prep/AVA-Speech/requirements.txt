@@ -1,0 +1,4 @@
+youtebe-dl
+pandas
+ffmpeg
+pydub

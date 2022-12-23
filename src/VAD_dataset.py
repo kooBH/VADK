@@ -29,7 +29,10 @@ class VAD_dataset(torch.utils.data.Dataset):
 
         if self.nframe > data["mel"].shape[1]:
             raise Exception("ERROR:: nframe is too large | " +str(self.nframe) +" > " + str(data["mel"].shape[1]))
-        idx_start = np.random.randint(data["mel"].shape[1]-self.nframe)
+        elif data["mel"].shape[1] == self.nframe :
+            idx_start = 0
+        else :
+            idx_start = np.random.randint(data["mel"].shape[1]-self.nframe)
         idx_end = idx_start + self.nframe
 
         data["mel"] = data["mel"][:,idx_start:idx_end]        
@@ -46,15 +49,14 @@ class VAD_dataset(torch.utils.data.Dataset):
         if 'd' in self.hp.model.input :
             d = torch.zeros(shape)
             # C, dim, T
-            d[:,:-1,:] = data["mel"][0,1:,:]-data["mel"][0,0:-1,:]
+            d[:,:,:-1] = data["mel"][0,:,1:]-data["mel"][0,:,:-1]
             # channel-wise concat
             data["mel"] = torch.cat((data["mel"],d),0)
-        
-        if 'dd' in self.hp.model.input :
-            dd = torch.zeros(shape)
-            dd[:,:-2,:] = data["mel"][0,1:-1,:]-data["mel"][0,0:-2,:]
-            # channel-wise concat
-            data["mel"] = torch.cat((data["mel"],dd),0)
+            if 'dd' in self.hp.model.input :
+                dd = torch.zeros(shape)
+                dd[:,:,:-1] = d[0,:,1:]-d[0,:,:-1]
+                # channel-wise concat
+                data["mel"] = torch.cat((data["mel"],dd),0)
 
         #mel = data["mel"][:,idx_start:idx_end].float()
         #label = data["label"][idx_start:idx_end]
